@@ -1868,15 +1868,29 @@
     const consent = form.querySelector("#f-consent");
     const done    = form.querySelector(".form-done");
     const INBOX   = "doubleaxis.3d@gmail.com";
-    const SEND_LABEL = button.textContent;
+    /* The Send button has exactly one busy state, and only one thing may
+       turn it on. The label is parked on the element itself so it survives
+       anything that re-runs this block, and `inFlight` is the single source
+       of truth: if no request is actually running, the button must be live.
+       An earlier version restored it at each exit point and one of those
+       paths was missed, which left the form stuck on "Sending…" after
+       coming back from the confirmation panel. */
+    button.dataset.label = button.dataset.label || button.textContent;
+    let inFlight = false;
 
-    /* The button is left disabled and reading "Sending…" while the request
-       is in flight. Every exit from that state has to put it back, or the
-       form returns from the confirmation panel with a dead Send button. */
-    const resetButton = () => {
-      button.disabled = false;
-      button.textContent = SEND_LABEL;
+    const setBusy = (on) => {
+      inFlight = on;
+      button.disabled = on;
+      button.textContent = on ? "Sending…" : button.dataset.label;
     };
+    const resetButton = () => setBusy(false);
+
+    /* watchdog: whatever happens, a button that is not sending is enabled */
+    ["focusin", "input", "pointerdown"].forEach((type) =>
+      form.addEventListener(type, () => { if (!inFlight && button.disabled) resetButton(); }));
+    /* returning through the browser's back/forward cache restores the DOM
+       exactly as it was left, busy state and all */
+    addEventListener("pageshow", (e) => { if (e.persisted) resetButton(); });
 
     /* Swap the fields for a confirmation panel. Their address is echoed
        back so a typo in it is obvious while they can still do something
@@ -1979,8 +1993,7 @@
         return;
       }
 
-      button.disabled = true;
-      button.textContent = "Sending…";
+      setBusy(true);
       say("", null);
 
       try {
@@ -2002,13 +2015,14 @@
 
         showSent({ name: data.name, email: data.email });
       } catch (err) {
-        resetButton();
         console.error("Contact form failed:", err);
         const link = mailtoFallback();
         status.innerHTML =
           'That did not send. Please try again, or ' +
           '<a href="' + link + '" style="text-decoration:underline">email us directly</a>.';
         status.classList.add("is-error");
+      } finally {
+        resetButton();
       }
     });
   })();
