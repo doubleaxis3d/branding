@@ -1,0 +1,2367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work — DOUBLE AXIS</title>
+<meta name="description" content="Double Axis — selected work archive.">
+<style>
+  /* Same font files as index.html — shared, so the browser caches them once. */
+  @font-face{
+    font-family:'Anton';
+    src:url('assets/fonts/anton.woff2') format('woff2');
+    font-weight:400; font-style:normal; font-display:block;
+  }
+  @font-face{
+    font-family:'Archivo';
+    src:url('assets/fonts/archivo.woff2') format('woff2');
+    font-weight:900; font-stretch:62% 125%; font-style:normal; font-display:block;
+  }
+  @font-face{
+    font-family:'Space Grotesk';
+    src:url('assets/fonts/space-grotesk.woff2') format('woff2');
+    font-weight:300 700; font-style:normal; font-display:block;
+  }
+  /* fonts end */
+
+  :root{
+    --bg: #0a0a0c;
+    --white: #f4f4f2;
+    --lime: #d7ff3a;
+    --pink: #ff2f9d;
+    --mint: #00ffae;
+    --violet: #8a3ffc;
+    --blue: #4b6bff;
+    --grey: #8a8a92;
+    --line: rgba(244,244,242,0.18);
+    --panel: #101014;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--white);
+    font-family:'Space Grotesk', sans-serif;
+    font-synthesis:none;
+    overflow-x:clip;
+  }
+  .display{
+    font-family:'Anton', sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.005em;
+    line-height:0.86;
+  }
+  a{color:inherit; text-decoration:none;}
+  /* images are never the drag source; in admin mode the card is */
+  img{-webkit-user-drag:none; user-drag:none;}
+  body.is-dragging{user-select:none; -webkit-user-select:none;}
+  button{font-family:inherit; color:inherit;}
+  ::selection{background:var(--lime); color:#0a0a0c;}
+  :focus-visible{outline:2px solid var(--lime); outline-offset:3px;}
+
+  /* ===== KINETIC CURSOR ===== */
+  .cursor-core,.cursor-ring,.cursor-aura{
+    position:fixed; left:0; top:0; z-index:9999; pointer-events:none; opacity:0;
+  }
+  .cursor-core{
+    width:7px; height:7px; margin:-3.5px 0 0 -3.5px; border-radius:50%;
+    background:var(--cursor-accent,var(--lime));
+    box-shadow:0 0 14px var(--cursor-accent,var(--lime));
+    transition:width .22s ease,height .22s ease,margin .22s ease,background .22s ease;
+  }
+  .cursor-ring{
+    width:46px; height:46px; margin:-23px 0 0 -23px;
+    display:grid; place-items:center;
+    border:1px solid color-mix(in srgb,var(--cursor-accent,var(--lime)) 76%,transparent);
+    border-radius:50%; background:rgba(10,10,12,.04); backdrop-filter:blur(1px);
+    transition:width .3s cubic-bezier(.2,.8,.2,1),height .3s cubic-bezier(.2,.8,.2,1),
+               margin .3s cubic-bezier(.2,.8,.2,1),border-color .22s ease,background .22s ease;
+  }
+  .cursor-label{
+    opacity:0; color:var(--white); font-size:8px; font-weight:600;
+    letter-spacing:.12em; text-transform:uppercase; white-space:nowrap;
+    transition:opacity .18s ease;
+  }
+  .cursor-aura{
+    width:260px; height:260px; margin:-130px 0 0 -130px; border-radius:50%;
+    background:radial-gradient(circle,var(--cursor-accent,var(--lime)) 0%,transparent 66%);
+    filter:blur(26px); mix-blend-mode:screen; opacity:0; transition:background .25s ease;
+  }
+  body.cursor-active .cursor-core,body.cursor-active .cursor-ring{opacity:1;}
+  body.cursor-active .cursor-aura{opacity:.055;}
+  body.cursor-over .cursor-ring{
+    width:86px; height:86px; margin:-43px 0 0 -43px;
+    background:color-mix(in srgb,var(--cursor-accent,var(--lime)) 10%,rgba(10,10,12,.08));
+    border-color:var(--cursor-accent,var(--lime));
+  }
+  body.cursor-over .cursor-core{width:4px; height:4px; margin:-2px 0 0 -2px;}
+  body.cursor-over .cursor-label{opacity:1;}
+  body.cursor-down .cursor-ring{
+    width:34px; height:34px; margin:-17px 0 0 -17px;
+    background:color-mix(in srgb,var(--cursor-accent,var(--lime)) 26%,transparent);
+  }
+  body.cursor-down .cursor-core{width:11px; height:11px; margin:-5.5px 0 0 -5.5px;}
+  body.cursor-hidden .cursor-core,body.cursor-hidden .cursor-ring,body.cursor-hidden .cursor-aura{opacity:0;}
+  @media (pointer:fine) and (hover:hover){
+    body.cursor-ready,body.cursor-ready a,body.cursor-ready button,body.cursor-ready .card{cursor:none;}
+    body.cursor-ready input,body.cursor-ready textarea,body.cursor-ready select,
+    body.cursor-ready label{cursor:auto;}
+  }
+
+  /* ===== CHROME ===== */
+  .scroll-progress{
+    position:fixed; top:0; left:0; z-index:60; height:2px; width:100%;
+    transform:scaleX(0); transform-origin:left;
+    background:linear-gradient(90deg,var(--lime),var(--pink)); pointer-events:none;
+  }
+  header{
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:26px 5vw; mix-blend-mode:difference;
+    transition:transform .55s cubic-bezier(.2,.85,.25,1);
+  }
+  header.tuck{transform:translateY(-130%);}
+  body.locked header{mix-blend-mode:normal;}
+  .logo{font-family:'Anton'; font-size:18px; letter-spacing:0.05em; text-transform:uppercase;}
+  nav ul{display:flex; gap:34px; list-style:none;}
+  nav a{font-size:12px; text-transform:uppercase; letter-spacing:0.1em; opacity:0.85;}
+  nav a:hover{opacity:1;}
+  nav a[aria-current="page"]{opacity:1;}
+  nav a[aria-current="page"]::after{
+    content:""; display:block; height:1px; margin-top:5px; background:currentColor;
+  }
+  @media (max-width:560px){
+    header{padding:18px 5vw;}
+    nav ul{gap:18px;}
+    nav a{font-size:10.5px; letter-spacing:.08em;}
+  }
+
+  /* ===== PAGE HEAD ===== */
+  .page-head{
+    padding:clamp(112px,13vw,168px) 5vw clamp(26px,3vw,40px);
+    border-bottom:1px solid rgba(244,244,242,.18);
+  }
+  .ph-kicker{
+    display:flex; justify-content:space-between; align-items:baseline; gap:20px;
+    flex-wrap:wrap; padding-bottom:clamp(16px,2vw,26px);
+    font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--grey);
+  }
+  .ph-kicker .idx{color:var(--lime);}
+  .page-title{
+    font-size:clamp(52px,13.5vw,196px);
+    padding-bottom:.04em;
+  }
+  .page-title .hl{display:block; overflow:hidden; padding-top:.07em; margin-top:-.07em;}
+  .page-title .accent{color:var(--pink);}
+  .ph-foot{
+    display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+    flex-wrap:wrap; padding-top:clamp(18px,2.4vw,30px);
+  }
+  .ph-foot p{max-width:52ch; font-size:13.5px; line-height:1.62; color:rgba(244,244,242,.66);}
+  .ph-count{
+    font-family:'Anton'; font-size:clamp(30px,4vw,54px); line-height:1;
+    color:var(--lime); font-variant-numeric:tabular-nums;
+  }
+  .ph-count small{
+    display:block; font-family:'Space Grotesk'; font-size:9px; font-weight:600;
+    letter-spacing:.18em; color:var(--grey); margin-top:8px;
+  }
+
+  /* ===== CONTROL BAR ===== */
+  .controls{
+    position:sticky; top:0; z-index:40;
+    display:flex; justify-content:space-between; align-items:center; gap:16px;
+    flex-wrap:wrap;
+    padding:14px 5vw;
+    background:rgba(10,10,12,.86);
+    backdrop-filter:blur(9px);
+    border-bottom:1px solid var(--line);
+  }
+  .filters{display:flex; gap:7px; flex-wrap:wrap;}
+  .chip{
+    background:transparent; border:1px solid var(--line); color:rgba(244,244,242,.7);
+    padding:7px 13px; font-size:10px; font-weight:600; letter-spacing:.12em;
+    text-transform:uppercase; cursor:pointer;
+    transition:border-color .25s ease,color .25s ease,background .25s ease;
+  }
+  .chip:hover{border-color:rgba(244,244,242,.5); color:var(--white);}
+  .chip[aria-pressed="true"]{background:var(--lime); border-color:var(--lime); color:#0a0a0c;}
+  .chip .n{opacity:.55; margin-left:6px; font-variant-numeric:tabular-nums;}
+  .view-toggle{display:flex; align-items:center; gap:10px;}
+  .view-toggle .vt{
+    background:transparent; border:1px solid var(--line); color:rgba(244,244,242,.55);
+    width:34px; height:30px; display:grid; place-items:center; cursor:pointer;
+    transition:border-color .25s,color .25s;
+  }
+  .view-toggle .vt[aria-pressed="true"]{border-color:var(--lime); color:var(--lime);}
+  .view-toggle svg{width:14px; height:14px; fill:currentColor;}
+
+  /* ===== ADMIN BAR ===== */
+  .admin-bar{
+    display:none; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:12px 5vw; background:var(--lime); color:#0a0a0c;
+    position:sticky; top:0; z-index:45;
+    border-bottom:1px solid rgba(10,10,12,.2);
+  }
+  body.is-admin .admin-bar{display:flex;}
+  body.is-admin .controls{top:52px;}
+  .admin-bar .tag{
+    font-size:9.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
+    background:#0a0a0c; color:var(--lime); padding:5px 9px;
+  }
+  .admin-bar .spacer{flex:1;}
+  .repo-label{
+    font-size:10px; font-weight:600; letter-spacing:.06em;
+    padding:5px 8px; border:1px solid rgba(10,10,12,.3); color:rgba(10,10,12,.8);
+  }
+  .repo-label:empty{display:none;}
+  .admin-note[data-busy]{color:#0a0a0c; font-weight:600;}
+  .abtn[disabled]{opacity:.38; cursor:not-allowed;}
+  body.is-local-only .repo-label{border-style:dashed;}
+  .abtn{
+    background:#0a0a0c; color:var(--lime); border:1px solid #0a0a0c;
+    padding:8px 13px; font-size:10.5px; font-weight:600; letter-spacing:.1em;
+    text-transform:uppercase; cursor:pointer; transition:opacity .2s ease;
+  }
+  .abtn:hover{opacity:.78;}
+  .abtn.ghost{background:transparent; color:#0a0a0c; border-color:rgba(10,10,12,.42);}
+  .abtn.ghost:hover{background:rgba(10,10,12,.09); opacity:1;}
+  .admin-note{font-size:10px; letter-spacing:.04em; color:rgba(10,10,12,.66);}
+  @media (max-width:700px){
+    .admin-bar{position:static;}
+    .admin-bar .spacer{flex-basis:100%; height:0;}
+    body.is-admin .controls{top:0;}
+  }
+
+  /* ===== GALLERY GRID ===== */
+  .gallery{
+    padding:clamp(28px,4vw,58px) 5vw clamp(60px,8vw,110px);
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+    gap:clamp(30px,3.4vw,54px) clamp(16px,1.8vw,28px);
+  }
+  .gallery.is-index{display:block; padding-top:0;}
+  .card{
+    position:relative; display:flex; flex-direction:column;
+    background:transparent; border:none; text-align:left; padding:0;
+    cursor:pointer; isolation:isolate;
+  }
+  .card.featured{grid-column:span 2;}
+  .card.is-hidden-item{opacity:.46;}
+  .thumb{
+    position:relative; overflow:hidden; aspect-ratio:4/3;
+    background:var(--panel); border:1px solid var(--line);
+    transition:border-color .4s ease;
+  }
+  .card.featured .thumb{aspect-ratio:16/9;}
+  .thumb img{
+    width:100%; height:100%; object-fit:cover; display:block;
+    transform:scale(1.001);
+    transition:transform 1.05s cubic-bezier(.16,.84,.24,1), filter .5s ease;
+    filter:saturate(.86) brightness(.92);
+  }
+  .card:hover .thumb img,.card:focus-visible .thumb img{transform:scale(1.055); filter:none;}
+  .card:hover .thumb,.card:focus-visible .thumb{border-color:var(--lime);}
+  .thumb.empty::before{
+    content:""; position:absolute; inset:0;
+    background:
+      linear-gradient(135deg,rgba(215,255,58,.15),rgba(255,47,157,.12) 62%,transparent),
+      repeating-linear-gradient(45deg,rgba(244,244,242,.045) 0 9px,transparent 9px 18px);
+  }
+  .thumb.empty::after{
+    content:"No image"; position:absolute; inset:0; display:grid; place-items:center;
+    font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:rgba(244,244,242,.4);
+  }
+  .thumb .shade{
+    position:absolute; inset:auto 0 0 0; height:56%; pointer-events:none;
+    background:linear-gradient(180deg,transparent,rgba(10,10,12,.72));
+    opacity:0; transition:opacity .45s ease;
+  }
+  .card:hover .thumb .shade{opacity:1;}
+  .thumb .count{
+    position:absolute; right:10px; bottom:10px; z-index:2;
+    padding:4px 7px; background:rgba(10,10,12,.72); border:1px solid rgba(244,244,242,.22);
+    font-size:9px; letter-spacing:.12em; color:rgba(244,244,242,.8);
+    font-variant-numeric:tabular-nums;
+  }
+  .thumb .privacy{
+    position:absolute; left:10px; top:10px; z-index:2;
+    padding:4px 7px; background:var(--pink); color:#0a0a0c;
+    font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  }
+  .c-top{
+    display:flex; align-items:baseline; gap:10px; padding:13px 0 4px;
+    border-top:1px solid var(--line); margin-top:13px;
+  }
+  .c-num{
+    font-size:10px; letter-spacing:.14em; color:var(--lime);
+    font-variant-numeric:tabular-nums; flex-shrink:0;
+  }
+  .c-cat{
+    font-size:9.5px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--grey); margin-left:auto;
+  }
+  .c-title{
+    font-family:'Anton',sans-serif; text-transform:uppercase; line-height:.98;
+    font-size:clamp(21px,2vw,29px); letter-spacing:.005em;
+    transition:color .3s ease;
+  }
+  .card:hover .c-title{color:var(--lime);}
+  .c-meta{
+    display:flex; gap:9px; flex-wrap:wrap; padding-top:9px;
+    font-size:10.5px; color:rgba(244,244,242,.5); letter-spacing:.03em;
+  }
+  .c-meta span:not(:last-child)::after{content:" /"; color:rgba(244,244,242,.25); margin-left:9px;}
+  .card-tools{
+    position:absolute; right:0; top:0; z-index:5; display:none; gap:0;
+  }
+  body.is-admin .card-tools{display:flex;}
+  .card-tools button{
+    background:rgba(10,10,12,.86); border:1px solid var(--line); border-left:none;
+    color:var(--white); width:34px; height:32px; display:grid; place-items:center;
+    cursor:pointer; transition:background .2s,color .2s;
+  }
+  .card-tools button:first-child{border-left:1px solid var(--line);}
+  .card-tools button:hover{background:var(--lime); color:#0a0a0c;}
+  .card-tools svg{width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:1.6;}
+  body.is-admin .card{cursor:default;}
+  .card-tools .grab{cursor:grab; touch-action:none;}
+  .card-tools .grab:active{cursor:grabbing;}
+  .card-tools .grab svg{fill:currentColor; stroke:none;}
+  body.is-dragging .card-tools .grab{cursor:grabbing;}
+  .card.dragging{opacity:.34;}
+  .card.drop-target .thumb{border-color:var(--pink); box-shadow:0 0 0 1px var(--pink);}
+  .gallery.is-index .card.drop-target{box-shadow:inset 0 0 0 1px var(--pink);}
+
+  /* ===== INDEX (LIST) VIEW ===== */
+  .gallery.is-index{grid-template-columns:none;}
+  .gallery.is-index .card{
+    position:relative;
+    display:grid; grid-template-columns:56px minmax(0,1fr) 150px 82px 0px;
+    align-items:center; gap:16px;
+    padding:17px 0; border-bottom:1px solid var(--line);
+  }
+  body.is-admin .gallery.is-index .card{grid-template-columns:56px minmax(0,1fr) 150px 82px 70px;}
+  .gallery.is-index .c-num{grid-column:1;}
+  .gallery.is-index .c-title{grid-column:2;}
+  .gallery.is-index .c-cat{grid-column:3;}
+  .gallery.is-index .c-year{grid-column:4;}
+  .gallery.is-index .card-tools{grid-column:5;}
+  .gallery.is-index .card.featured{grid-column:auto;}
+  .gallery.is-index .thumb,.gallery.is-index .c-meta{display:none;}
+  .gallery.is-index .c-top{border:none; margin:0; padding:0; display:contents;}
+  .gallery.is-index .c-cat{margin:0; text-align:right;}
+  .gallery.is-index .c-title{font-size:clamp(18px,2.2vw,30px);}
+  .gallery.is-index .card-tools{position:static; justify-content:flex-end;}
+  .gallery.is-index .c-year{
+    font-size:10.5px; letter-spacing:.1em; color:rgba(244,244,242,.5);
+    font-variant-numeric:tabular-nums; text-align:right;
+  }
+  .card .c-year{display:none;}
+  .gallery.is-index .card .c-year{display:block;}
+  .gallery.is-index .card:hover{background:rgba(244,244,242,.035);}
+  @media (max-width:760px){
+    .gallery.is-index .card,
+    body.is-admin .gallery.is-index .card{grid-template-columns:40px minmax(0,1fr) 62px;}
+    .gallery.is-index .c-cat{display:none;}
+    .gallery.is-index .c-year{grid-column:3;}
+    .gallery.is-index .card-tools{position:absolute; right:0; top:10px; grid-column:auto;}
+  }
+  /* hover peek: the thumbnail rides with the cursor in index view */
+  .peek{
+    position:fixed; z-index:70; width:230px; aspect-ratio:4/3; pointer-events:none;
+    border:1px solid var(--lime); background:var(--panel); overflow:hidden;
+    opacity:0; transform:translate(-50%,-50%) scale(.92);
+    transition:opacity .25s ease, transform .35s cubic-bezier(.16,.84,.24,1);
+  }
+  .peek.on{opacity:1; transform:translate(-50%,-50%) scale(1);}
+  .peek img{width:100%; height:100%; object-fit:cover;}
+
+  /* ===== EMPTY STATE ===== */
+  .empty-state{
+    grid-column:1/-1; padding:clamp(48px,9vw,110px) 0; text-align:center;
+    border:1px dashed var(--line);
+  }
+  .empty-state h3{
+    font-family:'Anton'; text-transform:uppercase; font-size:clamp(24px,3.4vw,42px);
+    color:rgba(244,244,242,.82); margin-bottom:12px;
+  }
+  .empty-state p{font-size:13px; color:var(--grey);}
+
+  /* ===== TICKER ===== */
+  .ticker{
+    position:relative; overflow:hidden; padding:10px 0;
+    background:var(--lime); color:#0a0a0c;
+    border-top:1px solid rgba(10,10,12,.18); border-bottom:1px solid rgba(10,10,12,.18);
+  }
+  .ticker-track{display:flex; width:max-content; will-change:transform;}
+  .ticker-track span{
+    font-weight:600; text-transform:uppercase; font-size:clamp(16px,2vw,28px);
+    letter-spacing:.09em; padding-right:.52em; white-space:nowrap; line-height:1;
+  }
+  .ticker-track .sep{color:var(--pink);}
+
+  /* ===== FOOTER ===== */
+  footer{
+    background:var(--lime); color:#0a0a0c; padding:38px 5vw 26px;
+    display:flex; justify-content:space-between; align-items:flex-end;
+    flex-wrap:wrap; gap:20px;
+  }
+  /* identical to the footer note on index.html */
+  footer .fnote{font-size:10px; text-transform:uppercase; letter-spacing:0.08em; opacity:0.7;}
+  .admin-key{
+    background:none; border:none; padding:0 0 0 12px;
+    font:inherit; letter-spacing:.14em; text-transform:uppercase;
+    color:rgba(10,10,12,.62); cursor:pointer; transition:color .2s;
+  }
+  .admin-key:hover{color:#0a0a0c;}
+
+  /* ===== BACK TO TOP ===== */
+  .to-top{
+    position:fixed; right:5vw; --to-top-gap:34px;
+    bottom:calc(var(--to-top-gap) + var(--to-top-lift,0px));
+    z-index:44; display:inline-flex; align-items:center; gap:9px;
+    min-height:46px; padding:0 17px;
+    background:var(--bg); color:var(--lime); border:1px solid var(--lime);
+    font-size:10.5px; font-weight:600; letter-spacing:.15em; text-transform:uppercase;
+    cursor:pointer; opacity:0; transform:translateY(14px); pointer-events:none;
+    transition:opacity .45s ease, transform .45s cubic-bezier(.16,.84,.24,1),
+               background .25s ease, color .25s ease;
+  }
+  .to-top.is-shown{opacity:1; transform:none; pointer-events:auto;}
+  @media (pointer:fine) and (hover:hover){
+    .to-top:hover{background:var(--lime); color:var(--bg);}
+  }
+  @media (max-width:560px){ .to-top{--to-top-gap:20px; padding:0 13px; font-size:10px;} }
+
+  /* ===== OVERLAYS (lightbox / modals) ===== */
+  .overlay{
+    position:fixed; inset:0; z-index:200; display:none;
+    background:rgba(6,6,8,.92); backdrop-filter:blur(7px);
+    overflow-y:auto; overscroll-behavior:contain;
+  }
+  .overlay.on{display:block;}
+  .overlay-close{
+    position:fixed; right:clamp(14px,3vw,34px); top:clamp(14px,3vw,28px); z-index:6;
+    width:44px; height:44px; display:grid; place-items:center;
+    background:rgba(10,10,12,.7); border:1px solid var(--line); color:var(--white);
+    cursor:pointer; transition:background .22s,color .22s,border-color .22s;
+  }
+  .overlay-close:hover{background:var(--lime); color:#0a0a0c; border-color:var(--lime);}
+  .overlay-close svg{width:16px; height:16px; stroke:currentColor; stroke-width:1.7; fill:none;}
+
+  /* lightbox — one flowing document, blocks in the order they were written */
+  .lb-doc{
+    width:min(1080px,92%); margin:0 auto;
+    padding:clamp(64px,8vw,104px) 0 clamp(60px,8vw,110px);
+  }
+  .lb-head{padding-bottom:clamp(26px,3.4vw,44px); border-bottom:1px solid var(--line);}
+  .lb-index{font-size:10px; letter-spacing:.16em; color:var(--lime); text-transform:uppercase;}
+  .lb-title{
+    font-family:'Anton'; text-transform:uppercase; line-height:.92;
+    font-size:clamp(34px,6vw,78px); margin:14px 0 22px;
+  }
+  .lb-facts{display:flex; flex-wrap:wrap; gap:0 34px;}
+  .lb-facts div{display:flex; gap:10px; padding:6px 0; font-size:11.5px;}
+  .lb-facts dt{color:var(--grey); letter-spacing:.1em; text-transform:uppercase; font-size:9.5px; padding-top:2px;}
+  .lb-facts dd{color:rgba(244,244,242,.86);}
+  .lb-tags{display:flex; gap:7px; flex-wrap:wrap; margin-top:18px;}
+  .lb-tags span{
+    border:1px solid var(--line); padding:5px 10px; font-size:10px;
+    letter-spacing:.1em; text-transform:uppercase; color:rgba(244,244,242,.66);
+  }
+  .lb-link{
+    display:inline-flex; align-items:center; gap:9px; margin-top:22px;
+    padding:12px 18px; background:var(--lime); color:#0a0a0c;
+    font-size:11px; font-weight:600; letter-spacing:.13em; text-transform:uppercase;
+  }
+
+  .lb-body{padding-top:clamp(30px,4vw,56px);}
+  .lb-block + .lb-block{margin-top:clamp(30px,4.4vw,64px);}
+  .lb-block figure{margin:0;}
+  .lb-block img{
+    width:100%; height:auto; display:block;
+    background:var(--panel); border:1px solid var(--line);
+  }
+  .lb-block figcaption{
+    margin-top:11px; padding-left:14px; border-left:1px solid var(--lime);
+    font-size:11.5px; line-height:1.6; color:rgba(244,244,242,.56);
+  }
+  .lb-block p{
+    max-width:62ch; font-size:15px; line-height:1.78;
+    color:rgba(244,244,242,.78); white-space:pre-wrap;
+  }
+  .lb-block.text + .lb-block.image,
+  .lb-block.image + .lb-block.text{margin-top:clamp(34px,5vw,72px);}
+  .lb-empty{
+    padding:56px 0; text-align:center; border:1px dashed var(--line);
+    font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:rgba(244,244,242,.36);
+  }
+
+  .lb-jump{
+    display:flex; gap:12px; margin-top:clamp(44px,6vw,86px);
+    border-top:1px solid var(--line); padding-top:20px;
+  }
+  .lb-jump button{
+    flex:1; background:transparent; border:1px solid var(--line); color:var(--white);
+    padding:16px 18px; text-align:left; cursor:pointer;
+    display:flex; flex-direction:column; gap:7px;
+    transition:border-color .25s ease, background .25s ease;
+  }
+  .lb-jump button:last-child{text-align:right;}
+  .lb-jump button:hover{border-color:var(--lime); background:rgba(215,255,58,.05);}
+  .lb-jump .dir{font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--lime);}
+  .lb-jump .name{font-family:'Anton'; text-transform:uppercase; font-size:17px; line-height:1;}
+  .lb-jump button[disabled]{opacity:.3; cursor:default;}
+
+  /* ===== BLOCK COMPOSER ===== */
+  .composer{border:1px solid var(--line); background:rgba(244,244,242,.02); padding:6px;}
+  .cblock{
+    position:relative; border:1px solid var(--line); background:var(--bg); padding:12px;
+    display:grid; grid-template-columns:1fr auto; gap:12px; align-items:start;
+  }
+  .cblock-head{
+    grid-column:1/-1; display:flex; align-items:center; gap:9px;
+    font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--grey);
+  }
+  .cblock-head .kind{color:var(--lime);}
+  .cblock-head .tools{margin-left:auto; display:flex; gap:4px;}
+  .cblock-head .tools button{
+    background:transparent; border:1px solid var(--line); color:rgba(244,244,242,.7);
+    width:26px; height:24px; display:grid; place-items:center; cursor:pointer; font-size:11px;
+    transition:border-color .2s,color .2s,background .2s;
+  }
+  .cblock-head .tools button:hover{border-color:var(--lime); color:var(--lime);}
+  .cblock-head .tools button.danger:hover{border-color:var(--pink); color:var(--pink);}
+  .cblock-head .tools button[disabled]{opacity:.28; cursor:default;}
+  .cblock textarea{
+    grid-column:1/-1; width:100%; min-height:104px; resize:vertical;
+    background:rgba(244,244,242,.04); border:1px solid var(--line); color:var(--white);
+    font-family:inherit; font-size:13.5px; line-height:1.7; padding:11px 13px;
+  }
+  .cblock textarea:focus{outline:none; border-color:var(--lime); background:rgba(215,255,58,.05);}
+  .cblock .pic{
+    width:130px; aspect-ratio:4/3; overflow:hidden; border:1px solid var(--line); background:var(--panel);
+  }
+  .cblock .pic img{width:100%; height:100%; object-fit:cover; display:block;}
+  .cblock .side{display:flex; flex-direction:column; gap:9px; min-width:0;}
+  .cblock .cap{
+    width:100%; background:rgba(244,244,242,.04); border:1px solid var(--line);
+    color:var(--white); font-family:inherit; font-size:12.5px; padding:9px 11px;
+  }
+  .cblock .cap:focus{outline:none; border-color:var(--lime);}
+  .cblock.image{grid-template-columns:130px minmax(0,1fr);}
+  .cblock .cover-btn{
+    align-self:flex-start; background:transparent; border:1px solid var(--line);
+    color:rgba(244,244,242,.7); padding:6px 11px; font-size:9.5px; font-weight:600;
+    letter-spacing:.12em; text-transform:uppercase; cursor:pointer;
+    transition:background .2s,color .2s,border-color .2s;
+  }
+  .cblock .cover-btn:hover{border-color:var(--lime); color:var(--lime);}
+  .cblock .cover-btn.on{background:var(--lime); border-color:var(--lime); color:#0a0a0c; cursor:default;}
+
+  .cadd{
+    display:flex; align-items:center; gap:8px; padding:7px 0;
+    opacity:.45; transition:opacity .2s ease;
+  }
+  .cadd:hover,.cadd:focus-within{opacity:1;}
+  .cadd .rule{flex:1; height:1px; background:var(--line);}
+  .cadd button{
+    background:transparent; border:1px solid var(--line); color:rgba(244,244,242,.75);
+    padding:5px 11px; font-size:9.5px; font-weight:600; letter-spacing:.11em;
+    text-transform:uppercase; cursor:pointer; transition:border-color .2s,color .2s;
+  }
+  .cadd button:hover{border-color:var(--lime); color:var(--lime);}
+  .composer.over{border-color:var(--lime); background:rgba(215,255,58,.06);}
+  .cempty{
+    padding:26px 10px; text-align:center; font-size:11.5px; color:var(--grey); line-height:1.7;
+  }
+  @media (max-width:600px){
+    .cblock.image{grid-template-columns:1fr;}
+    .cblock .pic{width:100%;}
+  }
+
+  /* ===== DIALOG (login / editor / prompt) ===== */
+  .sheet{
+    max-width:860px; margin:clamp(50px,8vh,110px) auto clamp(40px,8vh,90px);
+    width:min(92%,860px); background:var(--panel); border:1px solid var(--line);
+  }
+  .sheet.narrow{max-width:430px; width:min(92%,430px);}
+  .sheet-head{
+    padding:26px clamp(20px,3vw,34px) 20px; border-bottom:1px solid var(--line);
+    display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+  }
+  .sheet-head h2{
+    font-family:'Anton'; text-transform:uppercase; font-size:clamp(21px,2.4vw,30px); line-height:1;
+  }
+  .sheet-head .eyebrow{font-size:9.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--lime);}
+  .sheet-body{padding:clamp(20px,3vw,34px);}
+  .sheet-foot{
+    padding:18px clamp(20px,3vw,34px); border-top:1px solid var(--line);
+    display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; align-items:center;
+  }
+  .sheet-foot .left{margin-right:auto;}
+
+  .fgrid{display:grid; grid-template-columns:1fr 1fr; gap:0 26px;}
+  @media (max-width:640px){ .fgrid{grid-template-columns:1fr;} }
+  .f{margin-bottom:20px;}
+  .f.full{grid-column:1/-1;}
+  /* :not(.switch) — the toggle is a <label> too, and this block used to
+     win on specificity and force it back to display:block, which collapsed
+     the flex row and dropped the knob on top of the caption. */
+  .f label:not(.switch){
+    display:block; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--grey); margin-bottom:8px;
+  }
+  .f input[type="text"],.f input[type="password"],.f input[type="url"],.f textarea,.f select{
+    width:100%; background:rgba(244,244,242,.04); border:1px solid var(--line);
+    color:var(--white); font-family:inherit; font-size:13.5px; padding:11px 13px;
+    transition:border-color .22s ease, background .22s ease;
+  }
+  .f textarea{resize:vertical; min-height:132px; line-height:1.62;}
+  .f input:focus,.f textarea:focus,.f select:focus{
+    outline:none; border-color:var(--lime); background:rgba(215,255,58,.05);
+  }
+  .f .hint{margin-top:7px; font-size:10.5px; color:rgba(244,244,242,.4); line-height:1.5;}
+  .f select option{background:var(--panel);}
+  .switch{
+    display:flex; align-items:center; gap:11px; cursor:pointer; user-select:none;
+    margin:0; font-size:12px; letter-spacing:normal; text-transform:none; color:inherit;
+  }
+  /* taken out of the flow entirely so it can never take up a row of its own */
+  .switch input{
+    position:absolute; width:1px; height:1px; margin:0;
+    opacity:0; pointer-events:none;
+  }
+  .switch .track{
+    display:block; width:40px; height:22px; box-sizing:border-box;
+    border:1px solid var(--line); background:rgba(244,244,242,.05);
+    position:relative; flex:0 0 40px; transition:background .22s,border-color .22s;
+  }
+  .switch .track::after{
+    content:""; position:absolute; left:3px; top:3px; width:14px; height:14px;
+    background:rgba(244,244,242,.55); transition:transform .24s cubic-bezier(.2,.85,.25,1),background .22s;
+  }
+  .switch input:checked + .track{background:rgba(215,255,58,.16); border-color:var(--lime);}
+  .switch input:checked + .track::after{transform:translateX(18px); background:var(--lime);}
+  .switch input:focus-visible + .track{outline:2px solid var(--lime); outline-offset:3px;}
+  .switch .txt{display:block; font-size:12px; line-height:1.45; color:rgba(244,244,242,.8);}
+  .f .switch{padding-top:2px;}
+
+  /* upload */
+  .drop{
+    border:1px dashed rgba(244,244,242,.28); background:rgba(244,244,242,.02);
+    padding:22px; text-align:center; cursor:pointer;
+    transition:border-color .22s, background .22s;
+  }
+  .drop:hover,.drop.over{border-color:var(--lime); background:rgba(215,255,58,.06);}
+  .drop strong{
+    display:block; font-size:11px; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--white); margin-bottom:6px;
+  }
+  .drop span{font-size:11px; color:var(--grey);}
+  .shots{display:flex; gap:9px; flex-wrap:wrap; margin-top:14px;}
+  .shot{
+    position:relative; width:92px; aspect-ratio:4/3; overflow:hidden;
+    border:1px solid var(--line); background:var(--bg);
+  }
+  .shot img{width:100%; height:100%; object-fit:cover;}
+  .shot .x{
+    position:absolute; right:0; top:0; width:20px; height:20px;
+    background:rgba(10,10,12,.82); border:none; color:var(--white);
+    font-size:12px; line-height:1; cursor:pointer;
+  }
+  .shot .x:hover{background:var(--pink); color:#0a0a0c;}
+  .shot.is-cover::after{
+    content:"Cover"; position:absolute; left:0; bottom:0; right:0;
+    background:var(--lime); color:#0a0a0c; font-size:8px; font-weight:700;
+    letter-spacing:.1em; text-transform:uppercase; text-align:center; padding:2px 0;
+  }
+  .shot .setcover{
+    position:absolute; left:0; bottom:0; right:0; background:rgba(10,10,12,.76);
+    border:none; color:var(--white); font-size:8px; letter-spacing:.1em;
+    text-transform:uppercase; padding:3px 0; cursor:pointer; opacity:0; transition:opacity .2s;
+  }
+  .shot:hover .setcover{opacity:1;}
+
+  .msg{
+    padding:11px 13px; font-size:11.5px; line-height:1.55; margin-bottom:18px;
+    border-left:2px solid var(--lime); background:rgba(215,255,58,.07);
+    color:rgba(244,244,242,.86);
+  }
+  .msg.bad{border-color:var(--pink); background:rgba(255,47,157,.09);}
+  .msg[hidden]{display:none;}
+
+  /* toast */
+  .toast{
+    position:fixed; left:50%; bottom:26px; z-index:400;
+    transform:translate(-50%,20px); opacity:0; pointer-events:none;
+    background:var(--lime); color:#0a0a0c; padding:12px 20px;
+    font-size:11.5px; font-weight:600; letter-spacing:.06em;
+    transition:opacity .3s ease, transform .4s cubic-bezier(.16,.84,.24,1);
+    max-width:88vw; text-align:center;
+  }
+  .toast.on{opacity:1; transform:translate(-50%,0);}
+  .toast.bad{background:var(--pink);}
+
+  /* lightbox odds and ends */
+  .lb-nav[hidden]{display:none;}
+  .lb-frame.is-empty{min-height:44vh;}
+  .lb-frame.is-empty::after{
+    content:"No image yet"; font-size:10px; letter-spacing:.2em;
+    text-transform:uppercase; color:rgba(244,244,242,.34);
+  }
+  .lb-desc:empty{display:none;}
+
+  /* ===== MOTION ===== */
+  [data-reveal]{
+    transition:opacity 1s cubic-bezier(.16,.84,.24,1) var(--d,0s),
+               transform 1s cubic-bezier(.16,.84,.24,1) var(--d,0s);
+  }
+  .motion [data-reveal]:not(.is-in){opacity:0; transform:translateY(32px);}
+  [data-reveal="mask"]{transition:clip-path 1.15s cubic-bezier(.16,.84,.24,1) var(--d,0s);}
+  .motion [data-reveal="mask"]:not(.is-in){opacity:1; transform:none; clip-path:inset(-0.16em 100% -0.30em 0);}
+  .motion [data-reveal="mask"].is-in{clip-path:inset(-0.16em 0 -0.30em 0);}
+  [data-magnetic]{display:inline-block; will-change:transform; transition:transform .55s cubic-bezier(.2,.85,.25,1);}
+  [data-magnetic].pulling{transition:transform .1s linear;}
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    [data-reveal],[data-reveal="mask"],[data-magnetic]{
+      opacity:1 !important; transform:none !important; clip-path:none !important; transition:none !important;
+    }
+    .peek{display:none;}
+  }
+</style>
+<script>document.documentElement.classList.add("motion");</script>
+</head>
+<body>
+
+<div class="scroll-progress" aria-hidden="true"></div>
+<div class="cursor-aura" aria-hidden="true"></div>
+<div class="cursor-ring" aria-hidden="true"><span class="cursor-label"></span></div>
+<div class="cursor-core" aria-hidden="true"></div>
+<div class="peek" aria-hidden="true"><img alt=""></div>
+
+<header>
+  <a class="logo" href="index.html">Double Axis</a>
+  <nav>
+    <ul>
+      <li><a href="work.html" aria-current="page" data-magnetic="14">Work</a></li>
+      <li><a href="index.html#services" data-magnetic="14">Services</a></li>
+      <li><a href="index.html#contact" data-magnetic="14">Contact</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+<section class="page-head">
+  <div class="ph-kicker" data-reveal>
+    <span class="idx">Archive / 004</span>
+    <span>Double Axis — Selected Work</span>
+  </div>
+  <h1 class="page-title display">
+    <span class="hl"><span data-reveal="mask">Selected</span></span>
+    <span class="hl"><span data-reveal="mask" style="--d:.13s"><span class="accent">Work</span></span></span>
+  </h1>
+  <div class="ph-foot">
+    <p data-reveal style="--d:.2s">Modeling, animation, branding and rendering — collected as one index. Open any frame for the full set of stills and the brief behind it.</p>
+    <div class="ph-count" data-reveal style="--d:.28s">
+      <span id="totalCount">00</span>
+      <small>Projects on record</small>
+    </div>
+  </div>
+</section>
+
+<!-- ADMIN BAR (visible only when signed in) -->
+<div class="admin-bar" id="adminBar">
+  <span class="tag">Admin</span>
+  <span class="repo-label" id="repoLabel"></span>
+  <span class="admin-note" id="storageNote">불러오는 중…</span>
+  <span class="spacer"></span>
+  <button class="abtn" id="btnNew">+ 새 프로젝트</button>
+  <button class="abtn" id="btnPublish">GitHub에 발행</button>
+  <button class="abtn ghost" id="btnPull">저장소에서 불러오기</button>
+  <button class="abtn ghost" id="btnTidy">안 쓰는 이미지 정리</button>
+  <button class="abtn ghost" id="btnBundle">ZIP 내려받기</button>
+  <button class="abtn ghost" id="btnExport">백업 JSON</button>
+  <button class="abtn ghost" id="btnImport">가져오기</button>
+  <button class="abtn ghost" id="btnReset">편집본 지우기</button>
+  <button class="abtn ghost" id="btnLogout">로그아웃</button>
+  <input type="file" id="importFile" accept="application/json,.json" hidden>
+</div>
+
+<div class="controls">
+  <div class="filters" id="filters" role="group" aria-label="Filter by category"></div>
+  <div class="view-toggle" role="group" aria-label="View mode">
+    <button class="vt" id="viewGrid" aria-pressed="true" title="Grid view" aria-label="Grid view">
+      <svg viewBox="0 0 16 16"><rect x="0" y="0" width="7" height="7"/><rect x="9" y="0" width="7" height="7"/><rect x="0" y="9" width="7" height="7"/><rect x="9" y="9" width="7" height="7"/></svg>
+    </button>
+    <button class="vt" id="viewIndex" aria-pressed="false" title="Index view" aria-label="Index view">
+      <svg viewBox="0 0 16 16"><rect x="0" y="1" width="16" height="2"/><rect x="0" y="7" width="16" height="2"/><rect x="0" y="13" width="16" height="2"/></svg>
+    </button>
+  </div>
+</div>
+
+<section class="gallery" id="gallery" aria-live="polite"></section>
+</main>
+
+<div class="ticker" aria-hidden="true"><div class="ticker-track"></div></div>
+
+<footer>
+  <a class="logo" href="index.html">Double Axis</a>
+  <div class="fnote">
+    © 2026 Double Axis Studio — All rights reserved
+    <button class="admin-key" id="adminKey" title="관리자 로그인">Admin</button>
+  </div>
+</footer>
+
+<button class="to-top" type="button" aria-label="Back to top">
+  <span class="to-top-arrow" aria-hidden="true">&uarr;</span> Top
+</button>
+
+<!-- ============ LIGHTBOX ============ -->
+<div class="overlay" id="lightbox" role="dialog" aria-modal="true" aria-label="Project detail">
+  <button class="overlay-close" data-close aria-label="Close">
+    <svg viewBox="0 0 16 16"><path d="M2 2 L14 14 M14 2 L2 14"/></svg>
+  </button>
+  <article class="lb-doc">
+    <header class="lb-head">
+      <div class="lb-index" id="lbIndex"></div>
+      <h2 class="lb-title" id="lbTitle"></h2>
+      <dl class="lb-facts" id="lbFacts"></dl>
+      <div class="lb-tags" id="lbTags"></div>
+      <a class="lb-link" id="lbLink" target="_blank" rel="noopener" hidden>Visit project &rarr;</a>
+    </header>
+
+    <div class="lb-body" id="lbBody"></div>
+
+    <nav class="lb-jump">
+      <button type="button" id="lbPrev">
+        <span class="dir">&larr; 이전</span><span class="name"></span>
+      </button>
+      <button type="button" id="lbNext">
+        <span class="dir">다음 &rarr;</span><span class="name"></span>
+      </button>
+    </nav>
+  </article>
+</div>
+
+<!-- ============ LOGIN ============ -->
+<div class="overlay" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+  <button class="overlay-close" data-close aria-label="Close">
+    <svg viewBox="0 0 16 16"><path d="M2 2 L14 14 M14 2 L2 14"/></svg>
+  </button>
+  <div class="sheet narrow">
+    <div class="sheet-head">
+      <span class="eyebrow">GitHub</span>
+      <h2 id="loginTitle">저장소에 연결</h2>
+    </div>
+    <div class="sheet-body">
+      <div class="msg bad" id="loginMsg" hidden></div>
+      <div class="fgrid">
+        <div class="f"><label for="ghOwner">소유자</label><input type="text" id="ghOwner" placeholder="my-account" autocomplete="off" spellcheck="false"></div>
+        <div class="f"><label for="ghRepo">저장소</label><input type="text" id="ghRepo" placeholder="portfolio" autocomplete="off" spellcheck="false"></div>
+        <div class="f full"><label for="ghBranch">브랜치</label><input type="text" id="ghBranch" placeholder="main" autocomplete="off" spellcheck="false"></div>
+        <div class="f full">
+          <label for="ghToken">액세스 토큰</label>
+          <input type="password" id="ghToken" placeholder="github_pat_…" autocomplete="off" spellcheck="false">
+          <p class="hint">
+            GitHub &gt; Settings &gt; Developer settings &gt; <b>Fine-grained personal access tokens</b> 에서
+            <b>이 저장소 하나만</b> 선택하고 <b>Contents: Read and write</b> 권한, 만료일을 지정해 발급하세요.
+            토큰은 이 파일에 저장되지 않고, 기본적으로 탭을 닫으면 사라집니다.
+          </p>
+        </div>
+      </div>
+      <label class="switch" style="margin-top:2px">
+        <input type="checkbox" id="ghRemember"><span class="track"></span>
+        <span class="txt">이 브라우저에 토큰 기억 (공용 PC에서는 켜지 마세요)</span>
+      </label>
+    </div>
+    <div class="sheet-foot">
+      <button class="abtn ghost" id="localOnly" style="color:var(--grey);border-color:var(--line)">토큰 없이 로컬에서만 편집</button>
+      <span class="left"></span>
+      <button class="abtn ghost" data-close style="color:var(--white);border-color:var(--line)">취소</button>
+      <button class="abtn" id="loginGo" style="background:var(--lime);color:#0a0a0c;border-color:var(--lime)">연결</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ EDITOR ============ -->
+<div class="overlay" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+  <button class="overlay-close" data-close aria-label="Close">
+    <svg viewBox="0 0 16 16"><path d="M2 2 L14 14 M14 2 L2 14"/></svg>
+  </button>
+  <div class="sheet">
+    <div class="sheet-head">
+      <span class="eyebrow" id="editEyebrow">New entry</span>
+      <h2 id="editTitle">프로젝트 편집</h2>
+    </div>
+    <div class="sheet-body">
+      <div class="msg" id="editMsg" hidden></div>
+
+      <div class="fgrid">
+        <div class="f"><label for="eTitle">제목 *</label><input type="text" id="eTitle" placeholder="Ceramic Study 01"></div>
+        <div class="f"><label for="eCat">카테고리</label><input type="text" id="eCat" list="catList" placeholder="Modeling">
+          <datalist id="catList"></datalist></div>
+        <div class="f"><label for="eYear">연도</label><input type="text" id="eYear" placeholder="2026"></div>
+        <div class="f"><label for="eClient">클라이언트</label><input type="text" id="eClient" placeholder="Self-initiated"></div>
+        <div class="f"><label for="eRole">역할</label><input type="text" id="eRole" placeholder="Direction, Modeling, Lighting"></div>
+        <div class="f"><label for="eTags">태그</label><input type="text" id="eTags" placeholder="3D, Product, Blender">
+          <p class="hint">쉼표로 구분합니다.</p></div>
+      </div>
+
+      <div class="f full">
+        <label>내용</label>
+        <div class="composer" id="blocks"></div>
+        <input type="file" id="fileInput" accept="image/*" multiple hidden>
+        <p class="hint">이미지와 글은 여기 놓인 순서 그대로 보입니다. 블록 사이의 <b>＋</b> 줄을 눌러 그 자리에 글이나 이미지를 끼워 넣으세요. 이미지는 가로 1600px로 줄여 보관하며, <b>커버</b>로 지정한 이미지가 목록의 썸네일이 됩니다.</p>
+      </div>
+
+      <div class="fgrid">
+        <div class="f full"><label for="eLink">외부 링크</label><input type="url" id="eLink" placeholder="https://"></div>
+        <div class="f">
+          <label>레이아웃</label>
+          <label class="switch"><input type="checkbox" id="eFeatured"><span class="track"></span>
+            <span class="txt">넓게 표시 (2칸 차지)</span></label>
+        </div>
+        <div class="f">
+          <label>공개 여부</label>
+          <label class="switch"><input type="checkbox" id="ePublished" checked><span class="track"></span>
+            <span class="txt">사이트에 공개</span></label>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="abtn ghost" id="editDelete" style="color:var(--pink);border-color:rgba(255,47,157,.5)">삭제</button>
+      <span class="left"></span>
+      <button class="abtn ghost" data-close style="color:var(--white);border-color:var(--line)">취소</button>
+      <button class="abtn" id="editSave" style="background:var(--lime);color:#0a0a0c;border-color:var(--lime)">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =====================================================================
+   DOUBLE AXIS — WORK GALLERY
+   Data lives in this browser (localStorage). Nothing is sent anywhere.
+
+   Where things live:
+     - visitors read  data/works.json  and  assets/work/*  from the repo
+     - the admin edits in this browser, then commits to GitHub with a
+       fine-grained personal access token entered at sign-in
+
+   About the sign-in: the token IS the credential. It is never written
+   into this file, so this page stays safe to publish; it is held in
+   sessionStorage for the tab (localStorage only if the admin opts in).
+   Anyone holding that token can write to the repo it is scoped to, so
+   scope it to this one repository, give it Contents: Read and write
+   only, and set an expiry.
+   ===================================================================== */
+(() => {
+  "use strict";
+
+  /* ---------------------------------------------------------------
+     STORAGE PATHS — change these two lines if your folders differ.
+     They are relative to wherever work.html sits.
+       dataUrl : the published project list the site reads on load
+       imgDir  : where the exported image files are written
+     --------------------------------------------------------------- */
+  const CFG = {
+    dataUrl: "data/works.json",   /* committed to the repo, read by every visitor */
+    imgDir:  "assets/work/",      /* image files are committed here               */
+
+    /* Fill these in and the login form is pre-filled. Safe to commit:
+       they are public repo coordinates, not credentials. The token is
+       never written into this file — it is typed in at sign-in. */
+    owner:  "",
+    repo:   "",
+    branch: "main"
+  };
+
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  /* ---------- storage with a memory fallback ---------- */
+  const mkStore = (backing) => {
+    let live = true, mem = Object.create(null);
+    try { backing.setItem("__da", "1"); backing.removeItem("__da"); }
+    catch (e) { live = false; }
+    return {
+      get live() { return live; },
+      get(k) { try { return live ? backing.getItem(k) : (k in mem ? mem[k] : null); } catch (e) { return mem[k] ?? null; } },
+      set(k, v) { try { if (live) { backing.setItem(k, v); return true; } mem[k] = v; return false; } catch (e) { mem[k] = v; live = false; return false; } },
+      del(k) { try { live ? backing.removeItem(k) : delete mem[k]; } catch (e) { delete mem[k]; } }
+    };
+  };
+  const local = mkStore(window.localStorage);
+  const session = mkStore(window.sessionStorage);
+
+  const K = {
+    works: "da_works_v1",
+    view:  "da_view_v1",
+    repo:  "da_gh_repo_v1",     /* owner / repo / branch — not secret        */
+    token: "da_gh_token_v1"     /* only written when "기억하기"를 켠 경우      */
+  };
+
+  /* ---------- tiny helpers ---------- */
+  const uid = () => "w" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const pad = (n) => String(n).padStart(3, "0");
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  let toastTimer;
+  const toast = (text, bad) => {
+    const el = $("#toast");
+    el.textContent = text;
+    el.classList.toggle("bad", !!bad);
+    el.classList.add("on");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("on"), 3200);
+  };
+
+  const note = (el, text, bad) => {
+    if (!text) { el.hidden = true; return; }
+    el.textContent = text;
+    el.classList.toggle("bad", !!bad);
+    el.hidden = false;
+  };
+
+  /* ---------- data ---------- */
+  const SEED = [
+    { title: "Porcelain Axis", category: "Modeling", year: "2026", client: "Studio archive",
+      role: "Modeling, Shading", tags: ["Product", "Ceramic", "Blender"],
+      blocks: [{ type: "text", text: "A pair of thrown forms rebuilt as one continuous surface. Every silhouette is read from two axes at once, so the profile never resolves into a single front view." }],
+      featured: true, published: true },
+    { title: "Slow Orbit", category: "Animation", year: "2025", client: "Contest entry",
+      role: "Direction, Animation", tags: ["Loop", "Motion"],
+      blocks: [{ type: "text", text: "A twelve second loop built around one deceleration curve. The camera does the acting; nothing else in the frame moves on its own." }],
+      featured: false, published: true },
+    { title: "Field Notice", category: "Branding", year: "2025", client: "Bureau Neue",
+      role: "Creative direction, Type", tags: ["Identity", "Type", "System"],
+      blocks: [{ type: "text", text: "An identity carried entirely by proportion and rule weight. The mark is a measuring device, so it changes length with the format it sits in." }],
+      featured: false, published: true },
+    { title: "Lynx Study", category: "Rendering", year: "2025", client: "Self-initiated",
+      role: "Lighting, Rendering", tags: ["Character", "Fur", "Cycles"],
+      blocks: [{ type: "text", text: "A lighting exercise: one key, one bounce card, and eight hours of patience on the fur pass." }],
+      featured: false, published: true },
+    { title: "Dry Season", category: "Rendering", year: "2024", client: "Kite Agency",
+      role: "Look development", tags: ["Environment", "Still"],
+      blocks: [{ type: "text", text: "Six stills for a campaign that never ran. Kept here because the haze pass still teaches something about depth." }],
+      featured: false, published: true },
+    { title: "Counterweight", category: "Modeling", year: "2024", client: "Self-initiated",
+      role: "Modeling", tags: ["Hard surface", "Mechanism"],
+      blocks: [{ type: "text", text: "A mechanism modelled to working tolerances, then shown at the one angle where it reads as sculpture instead of a machine." }],
+      featured: false, published: true }
+  ];
+
+  /* A project is an ordered list of blocks — image or text, in whatever
+     order they were written. `images` and `desc` are derived from the
+     blocks so the cards, the counters and any older exported JSON keep
+     working unchanged. */
+  const normBlocks = (w) => {
+    if (Array.isArray(w.blocks) && w.blocks.length) {
+      return w.blocks.map((b) => (b && b.type === "text")
+        ? { type: "text", text: String(b.text || "") }
+        : { type: "image", src: String((b && b.src) || ""), caption: String((b && b.caption) || "") })
+        .filter((b) => b.type === "text" ? b.text.trim() !== "" : b.src !== "");
+    }
+    /* older records: every image, then the description */
+    const out = (Array.isArray(w.images) ? w.images : [])
+      .filter((s) => typeof s === "string" && s)
+      .map((src) => ({ type: "image", src, caption: "" }));
+    const d = String(w.desc || "").trim();
+    if (d) out.push({ type: "text", text: d });
+    return out;
+  };
+  const imagesOf = (blocks) => blocks.filter((b) => b.type === "image").map((b) => b.src);
+  const textOf = (blocks) => blocks.filter((b) => b.type === "text").map((b) => b.text).join("\n\n");
+
+  const normalize = (w, i) => {
+    const blocks = normBlocks(w);
+    const images = imagesOf(blocks);
+    return {
+    id: w.id || uid(),
+    title: String(w.title || "Untitled"),
+    category: String(w.category || "Uncategorised"),
+    year: String(w.year || ""),
+    client: String(w.client || ""),
+    role: String(w.role || ""),
+    desc: textOf(blocks),
+    link: String(w.link || ""),
+    tags: Array.isArray(w.tags) ? w.tags.map(String) : String(w.tags || "").split(",").map((t) => t.trim()).filter(Boolean),
+    blocks,
+    images,
+    cover: Number.isInteger(w.cover) && w.cover < images.length ? w.cover : 0,
+    featured: !!w.featured,
+    published: w.published !== false,
+    order: Number.isFinite(w.order) ? w.order : i
+    };
+  };
+
+  let works = [];
+  let source = "seed";        /* seed | site | local */
+
+  /* The published list. Missing file, or opening work.html straight off
+     the disk (file://), simply falls through — no error for a visitor. */
+  const fetchRemote = async () => {
+    try {
+      const res = await fetch(CFG.dataUrl, { cache: "no-store" });
+      if (!res.ok) return null;
+      const parsed = await res.json();
+      const list = (Array.isArray(parsed) ? parsed : parsed.works || []).map(normalize);
+      return list.length ? list : null;
+    } catch (e) { return null; }
+  };
+
+  const load = async () => {
+    const raw = local.get(K.works);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        works = (Array.isArray(parsed) ? parsed : parsed.works || []).map(normalize);
+        source = "local";
+        return;
+      } catch (e) {
+        toast("이 브라우저에 저장된 편집본을 읽지 못했습니다. 사이트 데이터로 시작합니다.", true);
+      }
+    }
+    const remote = await fetchRemote();
+    if (remote) { works = remote; source = "site"; return; }
+    works = SEED.map(normalize);
+    source = "seed";
+  };
+  const save = () => {
+    works.forEach((w, i) => { w.order = i; });
+    const payload = JSON.stringify(works);
+    if (payload.length > 3.6 * 1024 * 1024) {
+      toast("저장 공간의 한계(약 5MB)에 가까워졌습니다. 이미지 수를 줄이거나 JSON으로 내보내 두세요.", true);
+    }
+    const ok = local.set(K.works, payload);
+    source = "local";
+    if (!ok) toast("브라우저 저장에 실패했습니다. 저장 공간이 가득 찼거나 시크릿 모드일 수 있습니다. JSON으로 내보내 두세요.", true);
+    updateStorageNote();
+    return ok;
+  };
+  const bytes = () => {
+    const n = (local.get(K.works) || "").length;
+    if (n > 1048576) return (n / 1048576).toFixed(1) + " MB";
+    return n > 1024 ? Math.round(n / 1024) + " KB" : n + " B";
+  };
+  const updateStorageNote = () => {
+    const el = $("#storageNote");
+    if (!el) return;
+    const shots = works.reduce((n, w) => n + w.images.length, 0);
+    const embedded = works.reduce((n, w) => n + w.images.filter((s) => s.indexOf("data:") === 0).length, 0);
+    const where = { local: "브라우저 편집본", site: CFG.dataUrl, seed: "기본 예시" }[source];
+    el.textContent = where + " · " + works.length + "개 프로젝트 · 이미지 " + shots + "장" +
+      (embedded ? " (미배포 " + embedded + "장)" : "") +
+      (source === "local" ? " · " + bytes() + " 사용" : "") +
+      (local.live ? "" : " · 저장 불가 (임시 메모리)");
+  };
+
+  /* ---------- view state ---------- */
+  let filter = "All";
+  let view = local.get(K.view) === "index" ? "index" : "grid";
+  let admin = false;
+  const isVisible = (w) => admin || w.published;
+  const shown = () => works.filter(isVisible).filter((w) => filter === "All" || w.category === filter);
+  const coverOf = (w) => w.images.length ? (w.images[w.cover] || w.images[0]) : "";
+
+  /* ---------- render ---------- */
+  const gallery = $("#gallery");
+
+  const renderFilters = () => {
+    const cats = [...new Set(works.filter(isVisible).map((w) => w.category))].sort();
+    const counts = (c) => works.filter(isVisible).filter((w) => c === "All" || w.category === c).length;
+    if (filter !== "All" && !cats.includes(filter)) filter = "All";
+    $("#filters").innerHTML = ["All", ...cats].map((c) =>
+      '<button class="chip" type="button" data-cat="' + esc(c) + '" aria-pressed="' + (filter === c) + '">' +
+      esc(c) + '<span class="n">' + counts(c) + "</span></button>").join("");
+  };
+
+  const cardHTML = (w, i) => {
+    const cover = coverOf(w);
+    const tools = '<div class="card-tools">' +
+      '<button type="button" class="grab" data-act="grab" title="끌어서 순서 변경" aria-label="끌어서 순서 변경">' +
+        '<svg viewBox="0 0 16 16"><circle cx="6" cy="3.5" r="1.1"/><circle cx="10" cy="3.5" r="1.1"/>' +
+        '<circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/>' +
+        '<circle cx="6" cy="12.5" r="1.1"/><circle cx="10" cy="12.5" r="1.1"/></svg></button>' +
+      '<button type="button" data-act="edit" title="편집" aria-label="편집"><svg viewBox="0 0 16 16"><path d="M11 2 L14 5 L5.5 13.5 L2 14 L2.5 10.5 Z"/></svg></button>' +
+      '<button type="button" data-act="del" title="삭제" aria-label="삭제"><svg viewBox="0 0 16 16"><path d="M3 4 H13 M6.5 4 V2.5 H9.5 V4 M4.5 4 L5 14 H11 L11.5 4"/></svg></button>' +
+      "</div>";
+    return '<article class="card' + (w.featured ? " featured" : "") + (w.published ? "" : " is-hidden-item") +
+      '" data-id="' + w.id + '" tabindex="0" role="button" aria-label="' + esc(w.title) + ' 자세히 보기"' +
+      ">" +
+      tools +
+      '<div class="thumb' + (cover ? "" : " empty") + '">' +
+        (cover ? '<img src="' + cover + '" alt="' + esc(w.title) + '" draggable="false" loading="lazy" decoding="async">' : "") +
+        '<span class="shade"></span>' +
+        (w.images.length > 1 ? '<span class="count">' + w.images.length + " frames</span>" : "") +
+        (w.published ? "" : '<span class="privacy">비공개</span>') +
+      "</div>" +
+      '<div class="c-top"><span class="c-num">' + pad(i + 1) + '</span><span class="c-cat">' + esc(w.category) + "</span></div>" +
+      '<h2 class="c-title">' + esc(w.title) + "</h2>" +
+      '<span class="c-year">' + esc(w.year) + "</span>" +
+      '<div class="c-meta">' +
+        (w.year ? "<span>" + esc(w.year) + "</span>" : "") +
+        (w.client ? "<span>" + esc(w.client) + "</span>" : "") +
+        (w.tags.length ? "<span>" + esc(w.tags.slice(0, 3).join(" · ")) + "</span>" : "") +
+      "</div></article>";
+  };
+
+  const render = () => {
+    const list = shown();
+    gallery.classList.toggle("is-index", view === "index");
+    gallery.innerHTML = list.length
+      ? list.map(cardHTML).join("")
+      : '<div class="empty-state"><h3>' + (works.length ? "이 카테고리에는 작업이 없습니다" : "아직 등록된 작업이 없습니다") + "</h3><p>" +
+        (admin ? "상단의 <b>+ 새 프로젝트</b> 버튼으로 첫 작업을 추가하세요." : "곧 새로운 작업이 올라옵니다.") + "</p></div>";
+    $("#totalCount").textContent = pad(works.filter((w) => w.published).length).slice(-2);
+    renderFilters();
+    updateStorageNote();
+    revealScan();
+  };
+
+  /* ---------- gallery events ---------- */
+  gallery.addEventListener("click", (e) => {
+    const tool = e.target.closest("[data-act]");
+    const card = e.target.closest(".card");
+    if (!card) return;
+    const w = works.find((x) => x.id === card.dataset.id);
+    if (!w) return;
+    if (tool) {
+      e.stopPropagation();
+      if (!admin) return;
+      const act = tool.dataset.act;
+      if (act === "edit") openEditor(w);
+      else if (act === "del") removeWork(w);
+      return;                          /* "grab" is handled by pointer events */
+    }
+    if (suppressClick) return;         /* the click that ends a drag */
+    if (admin) openEditor(w);          /* editing mode opens the form */
+    else openLightbox(w.id);
+  });
+  gallery.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const card = e.target.closest(".card");
+    if (!card || e.target.closest("[data-act]")) return;
+    e.preventDefault();
+    const w = works.find((x) => x.id === card.dataset.id);
+    if (!w) return;
+    if (admin) openEditor(w);
+    else openLightbox(w.id);
+  });
+
+  $("#filters").addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    filter = chip.dataset.cat;
+    render();
+  });
+
+  const setView = (v) => {
+    view = v;
+    local.set(K.view, v);
+    $("#viewGrid").setAttribute("aria-pressed", String(v === "grid"));
+    $("#viewIndex").setAttribute("aria-pressed", String(v === "index"));
+    render();
+  };
+  $("#viewGrid").addEventListener("click", () => setView("grid"));
+  $("#viewIndex").addEventListener("click", () => setView("index"));
+
+  /* ---------- reorder (admin) ----------
+     Built on pointer events, not the HTML5 drag-and-drop API. Native drag
+     hands control to the browser: it rasterises a drag image (expensive
+     when a card holds a multi-megabyte data-URL photo), stops sending
+     pointermove/pointerup, and leaves the page looking frozen mid-gesture.
+     Pointer capture keeps every event coming to us, so the gesture can
+     always be finished or cancelled. */
+  let dragId = null, dragging = false, suppressClick = false;
+  let startX = 0, startY = 0;
+  let edgeScroll = 0, edgeRunning = false;
+
+  const edgeTick = () => {
+    if (!dragging || !edgeScroll) { edgeRunning = false; return; }
+    scrollBy(0, edgeScroll);
+    requestAnimationFrame(edgeTick);
+  };
+
+  const clearMarks = () => {
+    $$(".card", gallery).forEach((c) => c.classList.remove("dragging", "drop-target"));
+  };
+  const endDrag = () => {
+    dragId = null;
+    dragging = false;
+    edgeScroll = 0;
+    document.body.classList.remove("is-dragging");
+    clearMarks();
+  };
+
+  const cardUnder = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    return el && el.closest ? el.closest(".card") : null;
+  };
+
+  const moveWork = (fromId, toId) => {
+    const from = works.findIndex((w) => w.id === fromId);
+    const to = works.findIndex((w) => w.id === toId);
+    if (from < 0 || to < 0 || from === to) return false;
+    works.splice(to, 0, works.splice(from, 1)[0]);
+    save();
+    render();
+    return true;
+  };
+
+  gallery.addEventListener("pointerdown", (e) => {
+    const handle = e.target.closest('[data-act="grab"]');
+    if (!admin || !handle || (e.pointerType === "mouse" && e.button !== 0)) return;
+    const card = handle.closest(".card");
+    if (!card) return;
+    dragId = card.dataset.id;
+    dragging = false;
+    startX = e.clientX;
+    startY = e.clientY;
+    try { handle.setPointerCapture(e.pointerId); } catch (err) {}
+    e.preventDefault();
+  });
+
+  gallery.addEventListener("pointermove", (e) => {
+    if (!dragId) return;
+    if (!dragging) {
+      if (Math.hypot(e.clientX - startX, e.clientY - startY) < 6) return;   /* a click, not a drag */
+      dragging = true;
+      document.body.classList.add("is-dragging");
+      const card = gallery.querySelector('.card[data-id="' + dragId + '"]');
+      if (card) card.classList.add("dragging");
+    }
+    const over = cardUnder(e.clientX, e.clientY);
+    $$(".card.drop-target", gallery).forEach((c) => c.classList.remove("drop-target"));
+    if (over && over.dataset.id !== dragId) over.classList.add("drop-target");
+
+    const edge = 110;
+    edgeScroll = e.clientY < edge ? -14 : e.clientY > innerHeight - edge ? 14 : 0;
+    if (edgeScroll && !edgeRunning) { edgeRunning = true; requestAnimationFrame(edgeTick); }
+  });
+
+  const finishDrag = (e) => {
+    if (!dragId) return;
+    const from = dragId;
+    const moved = dragging;
+    const over = (e && dragging) ? cardUnder(e.clientX, e.clientY) : null;
+    endDrag();
+    if (over && over.dataset.id !== from && moveWork(from, over.dataset.id)) toast("순서를 저장했습니다.");
+    if (moved) {                       /* swallow the click this gesture ends with */
+      suppressClick = true;
+      setTimeout(() => { suppressClick = false; }, 0);
+    }
+  };
+
+  gallery.addEventListener("pointerup", finishDrag);
+  gallery.addEventListener("pointercancel", () => { endDrag(); });
+  gallery.addEventListener("lostpointercapture", () => { if (dragging) endDrag(); });
+  addEventListener("blur", endDrag);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && dragId) endDrag();
+  });
+
+  /* keyboard equivalent, and a rescue if a pointer gesture ever goes astray */
+  gallery.addEventListener("keydown", (e) => {
+    if (!admin || !e.altKey) return;
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown" && e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const card = e.target.closest(".card");
+    if (!card) return;
+    const list = shown();
+    const i = list.findIndex((x) => x.id === card.dataset.id);
+    const d = (e.key === "ArrowUp" || e.key === "ArrowLeft") ? -1 : 1;
+    const target = list[i + d];
+    if (!target) return;
+    e.preventDefault();
+    if (moveWork(card.dataset.id, target.id)) {
+      const again = gallery.querySelector('.card[data-id="' + card.dataset.id + '"]');
+      if (again) again.focus();
+      toast("순서를 저장했습니다.");
+    }
+  });
+
+  /* nothing on this page is a native drag source */
+  gallery.addEventListener("dragstart", (e) => e.preventDefault());
+
+  /* ---------- lightbox ---------- */
+  let lbId = null;
+  const lb = $("#lightbox");
+
+  const paintLightbox = () => {
+    const w = works.find((x) => x.id === lbId);
+    if (!w) return;
+    const list = shown();
+    const pos = list.findIndex((x) => x.id === w.id);
+
+    $("#lbIndex").textContent = (pos > -1 ? pad(pos + 1) + " / " : "") + w.category;
+    $("#lbTitle").textContent = w.title;
+
+    const facts = [["Year", w.year], ["Client", w.client], ["Role", w.role]].filter(([, v]) => v);
+    $("#lbFacts").innerHTML = facts.map(([k, v]) => "<div><dt>" + k + "</dt><dd>" + esc(v) + "</dd></div>").join("");
+    $("#lbTags").innerHTML = w.tags.map((t) => "<span>" + esc(t) + "</span>").join("");
+    const link = $("#lbLink");
+    if (w.link) { link.href = w.link; link.hidden = false; } else { link.hidden = true; }
+
+    $("#lbBody").innerHTML = w.blocks.length
+      ? w.blocks.map((b) => b.type === "image"
+          ? '<div class="lb-block image"><figure><img src="' + b.src + '" alt="' + esc(b.caption || w.title) +
+            '" draggable="false" loading="lazy" decoding="async">' +
+            (b.caption ? "<figcaption>" + esc(b.caption) + "</figcaption>" : "") + "</figure></div>"
+          : '<div class="lb-block text"><p>' + esc(b.text) + "</p></div>").join("")
+      : '<div class="lb-empty">아직 내용이 없습니다</div>';
+
+    const nav = (btn, target) => {
+      const el = $(btn);
+      el.disabled = !target;
+      el.querySelector(".name").textContent = target ? target.title : "";
+    };
+    nav("#lbPrev", list.length > 1 && pos > -1 ? list[(pos - 1 + list.length) % list.length] : null);
+    nav("#lbNext", list.length > 1 && pos > -1 ? list[(pos + 1) % list.length] : null);
+  };
+
+  const openLightbox = (id) => {
+    lbId = id;
+    paintLightbox();
+    openOverlay(lb);
+  };
+  const stepWork = (d) => {
+    const list = shown();
+    const i = list.findIndex((x) => x.id === lbId);
+    if (i < 0 || list.length < 2) return;
+    lbId = list[(i + d + list.length) % list.length].id;
+    paintLightbox();
+    if (lb.scrollTo) lb.scrollTo(0, 0); else lb.scrollTop = 0;
+  };
+  $("#lbPrev").addEventListener("click", () => stepWork(-1));
+  $("#lbNext").addEventListener("click", () => stepWork(1));
+
+  /* ---------- overlay plumbing ---------- */
+  let lastFocus = null;
+  const openOverlay = (el) => {
+    lastFocus = document.activeElement;
+    el.classList.add("on");
+    document.body.classList.add("locked");
+    document.body.style.overflow = "hidden";
+    const first = el.querySelector("input,textarea,button:not([data-close])");
+    if (first) setTimeout(() => first.focus({ preventScroll: true }), 40);
+  };
+  const closeOverlay = (el) => {
+    el.classList.remove("on");
+    if (!$(".overlay.on")) {
+      document.body.classList.remove("locked");
+      document.body.style.overflow = "";
+    }
+    if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+  };
+  $$(".overlay").forEach((ov) => {
+    ov.addEventListener("click", (e) => {
+      if (e.target === ov || e.target.closest("[data-close]")) closeOverlay(ov);
+    });
+  });
+  document.addEventListener("keydown", (e) => {
+    const open = $(".overlay.on");
+    if (!open) return;
+    if (e.key === "Escape") { closeOverlay(open); return; }
+    if (open !== lb) return;
+    if (e.key === "ArrowRight") stepWork(1);
+    if (e.key === "ArrowLeft") stepWork(-1);
+  });
+
+  /* ---------- GitHub ----------
+     The token is the real credential here. It is never stored in this
+     file; it is typed in at sign-in and kept in sessionStorage (or in
+     localStorage only if the admin asks for it). Anyone holding it can
+     write to the repo it is scoped to, so use a fine-grained token,
+     limited to this one repository, with Contents: Read and write, and
+     an expiry date. */
+  const GH_API = "https://api.github.com";
+  let token = "";
+  let repo = (() => {
+    try { return JSON.parse(local.get(K.repo) || "null") || {}; } catch (e) { return {}; }
+  })();
+  repo = {
+    owner: repo.owner || CFG.owner,
+    name: repo.name || CFG.repo,
+    branch: repo.branch || CFG.branch || "main"
+  };
+  const repoLabel = () => repo.owner + "/" + repo.name + " · " + repo.branch;
+  const segPath = (p) => p.split("/").map(encodeURIComponent).join("/");
+
+  const api = async (path, opts = {}) => {
+    const res = await fetch(GH_API + path, {
+      ...opts,
+      headers: {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        ...(token ? { Authorization: "Bearer " + token } : {}),
+        ...(opts.headers || {})
+      }
+    });
+    if (res.status === 404) return null;
+    if (res.status === 401) throw new Error("토큰이 거부되었습니다 (401). 만료되었거나 잘못된 토큰입니다.");
+    if (res.status === 403) throw new Error("권한이 없습니다 (403). 토큰에 Contents: Read and write 권한이 있는지 확인하세요.");
+    if (res.status === 409) throw new Error("저장소의 파일이 그사이 변경되었습니다 (409). '저장소에서 불러오기' 후 다시 시도하세요.");
+    if (!res.ok) throw new Error("GitHub 오류 " + res.status + " — " + (await res.text()).slice(0, 160));
+    return res.status === 204 ? true : res.json();
+  };
+
+  const b64 = (u8) => {
+    let out = "";
+    for (let i = 0; i < u8.length; i += 0x8000) out += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+    return btoa(out);
+  };
+
+  /* content-addressed names: the same picture keeps the same filename,
+     so re-publishing does not churn the repo with duplicates */
+  const shortHash = async (u8) => {
+    if (window.crypto && crypto.subtle) {
+      try {
+        const buf = await crypto.subtle.digest("SHA-256", u8);
+        return [...new Uint8Array(buf)].slice(0, 4).map((b) => b.toString(16).padStart(2, "0")).join("");
+      } catch (e) {}
+    }
+    return crc32(u8).toString(16).padStart(8, "0");
+  };
+
+  const getFile = (path) => api("/repos/" + repo.owner + "/" + repo.name + "/contents/" + segPath(path) +
+    "?ref=" + encodeURIComponent(repo.branch));
+
+  const putFile = async (path, contentB64, message) => {
+    const existing = await getFile(path);
+    if (existing && existing.content && existing.content.replace(/\s/g, "") === contentB64) return existing;
+    return api("/repos/" + repo.owner + "/" + repo.name + "/contents/" + segPath(path), {
+      method: "PUT",
+      body: JSON.stringify({
+        message, content: contentB64, branch: repo.branch,
+        ...(existing && existing.sha ? { sha: existing.sha } : {})
+      })
+    });
+  };
+
+  const delFile = (path, sha, message) =>
+    api("/repos/" + repo.owner + "/" + repo.name + "/contents/" + segPath(path), {
+      method: "DELETE",
+      body: JSON.stringify({ message, sha, branch: repo.branch })
+    });
+
+  /* ---------- sign in ---------- */
+  const setAdmin = (on, local_only) => {
+    admin = on;
+    document.body.classList.toggle("is-admin", on);
+    document.body.classList.toggle("is-local-only", !!local_only);
+    $("#adminKey").textContent = on ? (local_only ? "Admin ● 로컬" : "Admin ●") : "Admin";
+    $("#btnPublish").disabled = !!local_only;
+    $("#btnPull").disabled = !!local_only;
+    $("#repoLabel").textContent = local_only ? "로컬 전용 — 발행할 수 없습니다" : repoLabel();
+    render();
+  };
+
+  $("#adminKey").addEventListener("click", () => {
+    if (admin) { openEditor(null); return; }
+    note($("#loginMsg"), "");
+    $("#ghOwner").value = repo.owner;
+    $("#ghRepo").value = repo.name;
+    $("#ghBranch").value = repo.branch;
+    $("#ghToken").value = "";
+    openOverlay($("#loginModal"));
+  });
+
+  const signIn = async () => {
+    const msg = $("#loginMsg");
+    const owner = $("#ghOwner").value.trim();
+    const name = $("#ghRepo").value.trim();
+    const branch = $("#ghBranch").value.trim() || "main";
+    const tok = $("#ghToken").value.trim();
+    if (!owner || !name) { note(msg, "저장소 소유자와 이름을 입력하세요.", true); return; }
+    if (!tok) { note(msg, "액세스 토큰을 입력하세요.", true); return; }
+
+    note(msg, "토큰을 확인하는 중…");
+    token = tok;
+    repo = { owner, name, branch };
+    try {
+      const info = await api("/repos/" + owner + "/" + name);
+      if (!info) throw new Error("저장소를 찾을 수 없습니다. 이름과 토큰의 접근 범위를 확인하세요.");
+      if (info.permissions && info.permissions.push === false) {
+        throw new Error("이 토큰은 읽기만 가능합니다. Contents: Read and write 권한이 필요합니다.");
+      }
+      const branches = await api("/repos/" + owner + "/" + name + "/branches/" + encodeURIComponent(branch));
+      if (!branches) throw new Error("'" + branch + "' 브랜치가 없습니다.");
+    } catch (err) {
+      token = "";
+      note(msg, err.message, true);
+      return;
+    }
+
+    local.set(K.repo, JSON.stringify(repo));
+    session.set("da_gh_token", token);
+    if ($("#ghRemember").checked) local.set(K.token, token);
+    else local.del(K.token);
+
+    closeOverlay($("#loginModal"));
+    setAdmin(true, false);
+    toast(repoLabel() + " 에 연결했습니다.");
+  };
+  $("#loginGo").addEventListener("click", signIn);
+  $("#ghToken").addEventListener("keydown", (e) => { if (e.key === "Enter") signIn(); });
+
+  $("#localOnly").addEventListener("click", () => {
+    closeOverlay($("#loginModal"));
+    setAdmin(true, true);
+    toast("로컬 전용 편집 모드입니다. 이 브라우저 밖으로는 나가지 않습니다.");
+  });
+
+  $("#btnLogout").addEventListener("click", () => {
+    token = "";
+    session.del("da_gh_token");
+    local.del(K.token);
+    setAdmin(false, false);
+    toast("로그아웃했습니다.");
+  });
+
+  /* ---------- publish ---------- */
+  const busy = (text) => {
+    const el = $("#storageNote");
+    if (text) { el.dataset.busy = "1"; el.textContent = text; }
+    else { delete el.dataset.busy; updateStorageNote(); }
+  };
+
+  $("#btnPublish").addEventListener("click", async () => {
+    if (!token) return;
+    const hidden = works.filter((w) => !w.published).length;
+    const pending = works.reduce((n, w) => n + w.images.filter((s) => s.indexOf("data:") === 0).length, 0);
+    if (!confirm(
+      repoLabel() + " 에 커밋합니다.\n\n" +
+      "· 프로젝트 " + works.length + "개 → " + CFG.dataUrl + "\n" +
+      "· 새 이미지 " + pending + "장 → " + CFG.imgDir + "\n" +
+      (hidden ? "\n비공개로 표시한 " + hidden + "개도 파일에는 그대로 들어갑니다.\n공개 저장소라면 누구나 읽을 수 있습니다.\n" : "") +
+      "\n같은 파일을 다른 곳에서 먼저 고쳤다면 그 변경은 덮어써집니다."
+    )) return;
+
+    const btn = $("#btnPublish");
+    btn.disabled = true;
+    try {
+      const out = [];
+      let done = 0;
+      for (let i = 0; i < works.length; i++) {
+        const w = works[i];
+        const stem = slugify(w.title);
+        const blocks = [];
+        for (const b of w.blocks) {
+          if (b.type !== "image" || b.src.indexOf("data:") !== 0) { blocks.push({ ...b }); continue; }
+          const { data, ext } = dataUrlBytes(b.src);
+          const path = CFG.imgDir + (stem ? stem + "-" : "") + (await shortHash(data)) + "." + ext;
+          busy("이미지 업로드 " + (++done) + "/" + pending + " — " + path);
+          await putFile(path, b64(data), "Add work image " + path);
+          blocks.push({ ...b, src: path });
+        }
+        out.push({ ...w, blocks, images: blocks.filter((b) => b.type === "image").map((b) => b.src) });
+      }
+
+      busy(CFG.dataUrl + " 커밋 중…");
+      const json = new TextEncoder().encode(JSON.stringify(out, null, 2));
+      const res = await putFile(CFG.dataUrl, b64(json), "Update work list (" + out.length + " projects)");
+
+      works = out.map(normalize);
+      save();
+      render();
+      busy(null);
+      const sha = res && res.commit && res.commit.sha ? res.commit.sha.slice(0, 7) : "";
+      toast("발행했습니다" + (sha ? " (" + sha + ")" : "") + ". GitHub Pages 반영에 1분 정도 걸립니다.");
+    } catch (err) {
+      busy(null);
+      toast(err.message, true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  /* ---------- pull from the repo ---------- */
+  $("#btnPull").addEventListener("click", async () => {
+    if (!token) return;
+    try {
+      busy("저장소에서 " + CFG.dataUrl + " 를 읽는 중…");
+      const file = await getFile(CFG.dataUrl);
+      busy(null);
+      if (!file) { toast("저장소에 " + CFG.dataUrl + " 가 아직 없습니다. 먼저 발행하세요.", true); return; }
+      const text = new TextDecoder().decode(Uint8Array.from(atob(file.content.replace(/\s/g, "")), (c) => c.charCodeAt(0)));
+      const parsed = JSON.parse(text);
+      const list = (Array.isArray(parsed) ? parsed : parsed.works || []).map(normalize);
+      if (!confirm("저장소의 " + list.length + "개 항목으로 화면을 교체할까요?\n아직 발행하지 않은 편집 내용은 사라집니다.")) return;
+      works = list;
+      save();
+      render();
+      toast("저장소에서 불러왔습니다.");
+    } catch (err) {
+      busy(null);
+      toast(err.message, true);
+    }
+  });
+
+  /* ---------- remove images the list no longer references ---------- */
+  $("#btnTidy").addEventListener("click", async () => {
+    if (!token) return;
+    try {
+      busy(CFG.imgDir + " 를 확인하는 중…");
+      const dir = await api("/repos/" + repo.owner + "/" + repo.name + "/contents/" +
+        segPath(CFG.imgDir.replace(/\/$/, "")) + "?ref=" + encodeURIComponent(repo.branch));
+      busy(null);
+      if (!Array.isArray(dir)) { toast("이미지 폴더가 아직 없습니다.", true); return; }
+      const used = new Set(works.flatMap((w) => w.images));
+      const orphans = dir.filter((f) => f.type === "file" && !used.has(f.path) && !/readme/i.test(f.name));
+      if (!orphans.length) { toast("지울 파일이 없습니다."); return; }
+      if (!confirm("어느 프로젝트도 쓰지 않는 이미지 " + orphans.length + "개를 저장소에서 지울까요?\n\n" +
+        orphans.slice(0, 8).map((f) => "· " + f.name).join("\n") + (orphans.length > 8 ? "\n…" : ""))) return;
+      for (let i = 0; i < orphans.length; i++) {
+        busy("삭제 " + (i + 1) + "/" + orphans.length + " — " + orphans[i].name);
+        await delFile(orphans[i].path, orphans[i].sha, "Remove unused work image " + orphans[i].name);
+      }
+      busy(null);
+      toast(orphans.length + "개를 정리했습니다.");
+    } catch (err) {
+      busy(null);
+      toast(err.message, true);
+    }
+  });
+
+  /* ---------- editor: an ordered list of blocks ---------- */
+  let editing = null;      /* null = new entry */
+  let draftBlocks = [];
+  let draftCover = 0;      /* index among the image blocks */
+  let insertAt = null;     /* where the next uploaded image lands */
+
+  const imgIndexOf = (i) => draftBlocks.slice(0, i).filter((b) => b.type === "image").length;
+  const imageCount = () => draftBlocks.filter((b) => b.type === "image").length;
+
+  const addRow = (i) => '<div class="cadd"><span class="rule"></span>' +
+    '<button type="button" data-act="addtext" data-i="' + i + '">＋ 글</button>' +
+    '<button type="button" data-act="addimage" data-i="' + i + '">＋ 이미지</button>' +
+    '<span class="rule"></span></div>';
+
+  const blockRow = (b, i) => {
+    const last = draftBlocks.length - 1;
+    const tools = '<span class="tools">' +
+      '<button type="button" data-act="up" data-i="' + i + '" title="위로" aria-label="위로"' + (i === 0 ? " disabled" : "") + '>&uarr;</button>' +
+      '<button type="button" data-act="down" data-i="' + i + '" title="아래로" aria-label="아래로"' + (i === last ? " disabled" : "") + '>&darr;</button>' +
+      '<button type="button" class="danger" data-act="del" data-i="' + i + '" title="삭제" aria-label="삭제">&times;</button>' +
+      "</span>";
+
+    if (b.type === "text") {
+      return '<div class="cblock text">' +
+        '<div class="cblock-head"><span class="kind">글</span>' + tools + "</div>" +
+        '<textarea data-i="' + i + '" placeholder="이 자리에 들어갈 글을 적어주세요.">' + esc(b.text) + "</textarea>" +
+        "</div>";
+    }
+    const n = imgIndexOf(i);
+    const isCover = n === draftCover;
+    return '<div class="cblock image">' +
+      '<div class="cblock-head"><span class="kind">이미지 ' + (n + 1) + "</span>" + tools + "</div>" +
+      '<div class="pic"><img src="' + b.src + '" alt=""></div>' +
+      '<div class="side">' +
+        '<input class="cap" type="text" data-i="' + i + '" value="' + esc(b.caption) + '" placeholder="캡션 (선택)">' +
+        '<button type="button" class="cover-btn' + (isCover ? " on" : "") + '" data-act="cover" data-i="' + i + '"' +
+          (isCover ? " disabled" : "") + ">" + (isCover ? "커버" : "커버로 지정") + "</button>" +
+      "</div></div>";
+  };
+
+  const paintBlocks = () => {
+    const el = $("#blocks");
+    if (!draftBlocks.length) {
+      el.innerHTML = '<div class="cempty">아직 비어 있습니다.<br>아래에서 글이나 이미지를 추가하세요. 파일을 이 영역에 끌어다 놓아도 됩니다.</div>' + addRow(0);
+      return;
+    }
+    el.innerHTML = addRow(0) + draftBlocks.map((b, i) => blockRow(b, i) + addRow(i + 1)).join("");
+  };
+
+  const fixCover = () => {
+    const n = imageCount();
+    if (draftCover >= n) draftCover = Math.max(0, n - 1);
+  };
+
+  $("#blocks").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-act]");
+    if (!btn) return;
+    const i = Number(btn.dataset.i);
+    const act = btn.dataset.act;
+
+    if (act === "addtext") {
+      draftBlocks.splice(i, 0, { type: "text", text: "" });
+      paintBlocks();
+      const ta = $$("#blocks textarea")[draftBlocks.slice(0, i + 1).filter((b) => b.type === "text").length - 1];
+      if (ta) ta.focus();
+      return;
+    }
+    if (act === "addimage") { insertAt = i; $("#fileInput").click(); return; }
+    if (act === "del") {
+      const wasImage = draftBlocks[i].type === "image";
+      const n = imgIndexOf(i);
+      draftBlocks.splice(i, 1);
+      if (wasImage && n < draftCover) draftCover--;
+      fixCover();
+    }
+    if (act === "up" && i > 0) {
+      draftBlocks.splice(i - 1, 0, draftBlocks.splice(i, 1)[0]);
+      draftCover = imgIndexOfSrc(draftCover);
+    }
+    if (act === "down" && i < draftBlocks.length - 1) {
+      draftBlocks.splice(i + 1, 0, draftBlocks.splice(i, 1)[0]);
+      draftCover = imgIndexOfSrc(draftCover);
+    }
+    if (act === "cover") draftCover = imgIndexOf(i);
+    paintBlocks();
+  });
+
+  /* moving a block can change the image order, so the cover follows the
+     picture it was pointing at rather than the slot number */
+  let coverSrc = null;
+  const imgIndexOfSrc = () => {
+    if (!coverSrc) return draftCover;
+    const idx = draftBlocks.filter((b) => b.type === "image").findIndex((b) => b.src === coverSrc);
+    return idx < 0 ? 0 : idx;
+  };
+  const rememberCover = () => {
+    const imgs = draftBlocks.filter((b) => b.type === "image");
+    coverSrc = imgs.length ? (imgs[draftCover] || imgs[0]).src : null;
+  };
+  $("#blocks").addEventListener("pointerdown", rememberCover, true);
+
+  $("#blocks").addEventListener("input", (e) => {
+    const i = Number(e.target.dataset.i);
+    if (Number.isNaN(i) || !draftBlocks[i]) return;
+    if (e.target.tagName === "TEXTAREA") draftBlocks[i].text = e.target.value;
+    else if (e.target.classList.contains("cap")) draftBlocks[i].caption = e.target.value;
+  });
+
+  const openEditor = (w) => {
+    editing = w || null;
+    draftBlocks = w ? w.blocks.map((b) => ({ ...b })) : [];
+    draftCover = w ? w.cover : 0;
+    fixCover();
+    insertAt = null;
+    note($("#editMsg"), "");
+    $("#editEyebrow").textContent = w ? "Entry " + pad(works.indexOf(w) + 1) : "New entry";
+    $("#editTitle").textContent = w ? "프로젝트 편집" : "새 프로젝트";
+    $("#eTitle").value = w ? w.title : "";
+    $("#eCat").value = w ? w.category : "";
+    $("#eYear").value = w ? w.year : String(new Date().getFullYear());
+    $("#eClient").value = w ? w.client : "";
+    $("#eRole").value = w ? w.role : "";
+    $("#eTags").value = w ? w.tags.join(", ") : "";
+    $("#eLink").value = w ? w.link : "";
+    $("#eFeatured").checked = w ? w.featured : false;
+    $("#ePublished").checked = w ? w.published : true;
+    $("#editDelete").style.display = w ? "" : "none";
+    $("#catList").innerHTML = [...new Set(works.map((x) => x.category))]
+      .map((c) => '<option value="' + esc(c) + '">').join("");
+    paintBlocks();
+    openOverlay($("#editModal"));
+  };
+
+  $("#btnNew").addEventListener("click", () => openEditor(null));
+
+  $("#editSave").addEventListener("click", () => {
+    const title = $("#eTitle").value.trim();
+    if (!title) { note($("#editMsg"), "제목을 입력하세요.", true); $("#eTitle").focus(); return; }
+    rememberCover();
+    const blocks = draftBlocks
+      .map((b) => b.type === "text" ? { type: "text", text: b.text.trim() } : { ...b })
+      .filter((b) => b.type === "image" ? b.src : b.text !== "");
+    const imgs = blocks.filter((b) => b.type === "image");
+    const cover = Math.max(0, imgs.findIndex((b) => b.src === coverSrc));
+
+    const data = {
+      title,
+      category: $("#eCat").value.trim() || "Uncategorised",
+      year: $("#eYear").value.trim(),
+      client: $("#eClient").value.trim(),
+      role: $("#eRole").value.trim(),
+      tags: $("#eTags").value.split(",").map((t) => t.trim()).filter(Boolean),
+      link: $("#eLink").value.trim(),
+      blocks,
+      cover,
+      featured: $("#eFeatured").checked,
+      published: $("#ePublished").checked
+    };
+    if (editing) Object.assign(editing, normalize({ ...editing, ...data }, 0));
+    else works.unshift(normalize({ ...data, id: uid() }, 0));
+    const ok = save();
+    const added = !editing;
+    closeOverlay($("#editModal"));
+    render();
+    if (ok) toast(added ? "새 프로젝트를 추가했습니다." : "저장했습니다.");
+    editing = null;
+  });
+
+  const removeWork = (w) => {
+    if (!confirm('"' + w.title + '" 을(를) 삭제할까요? 되돌릴 수 없습니다.')) return;
+    works = works.filter((x) => x.id !== w.id);
+    save();
+    render();
+    toast("삭제했습니다.");
+  };
+  $("#editDelete").addEventListener("click", () => {
+    if (!editing) return;
+    const w = editing;
+    closeOverlay($("#editModal"));
+    editing = null;
+    removeWork(w);
+  });
+
+  /* ---------- image intake ---------- */
+  const MAX_W = 1600, QUALITY = 0.82;
+  let outType = "image/jpeg";
+  try {
+    const probe = document.createElement("canvas");
+    probe.width = probe.height = 1;
+    if (probe.toDataURL("image/webp").indexOf("data:image/webp") === 0) outType = "image/webp";
+  } catch (e) {}
+
+  const readAsDataURL = (file) => new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = () => rej(new Error("파일을 읽지 못했습니다."));
+    fr.readAsDataURL(file);
+  });
+
+  const shrink = async (file) => {
+    /* GIFs lose their animation through a canvas, so small ones pass through */
+    if (file.type === "image/gif") {
+      if (file.size > 2.5 * 1024 * 1024) throw new Error("GIF는 2.5MB 이하만 올릴 수 있습니다.");
+      return readAsDataURL(file);
+    }
+    const url = await readAsDataURL(file);
+    const img = await new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => rej(new Error("이미지를 열지 못했습니다."));
+      im.src = url;
+    });
+    const scale = Math.min(1, MAX_W / (img.naturalWidth || MAX_W));
+    if (scale === 1 && url.length < 400000) return url;
+    const cv = document.createElement("canvas");
+    cv.width = Math.max(1, Math.round((img.naturalWidth || MAX_W) * scale));
+    cv.height = Math.max(1, Math.round((img.naturalHeight || MAX_W) * scale));
+    const ctx = cv.getContext("2d");
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, 0, 0, cv.width, cv.height);
+    return cv.toDataURL(outType, QUALITY);
+  };
+
+  const intake = async (files, at) => {
+    const list = [...files].filter((f) => f.type.startsWith("image/"));
+    if (!list.length) { note($("#editMsg"), "이미지 파일만 추가할 수 있습니다.", true); return; }
+    note($("#editMsg"), "이미지 " + list.length + "장을 처리하는 중…");
+    let pos = Number.isInteger(at) ? at : draftBlocks.length;
+    let added = 0;
+    for (const file of list) {
+      try {
+        draftBlocks.splice(pos++, 0, { type: "image", src: await shrink(file), caption: "" });
+        added++;
+        paintBlocks();
+      } catch (err) {
+        note($("#editMsg"), file.name + ": " + err.message, true);
+      }
+    }
+    fixCover();
+    paintBlocks();
+    if (added) note($("#editMsg"), "이미지 " + added + "장을 넣었습니다. 저장을 눌러야 반영됩니다.");
+  };
+
+  $("#fileInput").addEventListener("change", (e) => {
+    intake(e.target.files, insertAt);
+    insertAt = null;
+    e.target.value = "";
+  });
+  ["dragenter", "dragover"].forEach((t) => $("#blocks").addEventListener(t, (e) => {
+    e.preventDefault(); $("#blocks").classList.add("over");
+  }));
+  ["dragleave", "drop"].forEach((t) => $("#blocks").addEventListener(t, (e) => {
+    e.preventDefault(); $("#blocks").classList.remove("over");
+  }));
+  $("#blocks").addEventListener("drop", (e) => {
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) intake(e.dataTransfer.files, null);
+  });
+
+  /* Dropping an image anywhere else used to make the browser open that file
+     and walk away from the page — taking any unsaved edits with it. */
+  const hasFiles = (e) => {
+    const t = e.dataTransfer && e.dataTransfer.types;
+    return !!t && [].indexOf.call(t, "Files") > -1;
+  };
+  ["dragover", "drop"].forEach((type) => addEventListener(type, (e) => {
+    if (!hasFiles(e)) return;
+    if (e.target.closest && e.target.closest("#blocks")) return;
+    e.preventDefault();
+  }));
+
+  /* ---------- ZIP writer (stored, no compression) ----------
+     Small enough to keep inline, so the page still needs no build step
+     and no dependency. Images are already compressed as WebP/JPEG, so
+     deflating them again would buy almost nothing. */
+  const crcTable = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+  const crc32 = (u8) => {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < u8.length; i++) c = crcTable[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  };
+  const zip = (files) => {
+    const enc = new TextEncoder();
+    const now = new Date();
+    const time = ((now.getHours() << 11) | (now.getMinutes() << 5) | Math.floor(now.getSeconds() / 2)) & 0xFFFF;
+    const date = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
+    const body = [], dir = [];
+    let offset = 0;
+    files.forEach((f) => {
+      const name = enc.encode(f.name);
+      const crc = crc32(f.data), size = f.data.length;
+      const lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+      lh.setUint16(8, 0, true); lh.setUint16(10, time, true); lh.setUint16(12, date, true);
+      lh.setUint32(14, crc, true); lh.setUint32(18, size, true); lh.setUint32(22, size, true);
+      lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+      body.push(new Uint8Array(lh.buffer), name, f.data);
+      const cd = new DataView(new ArrayBuffer(46));
+      cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true);
+      cd.setUint16(8, 0x0800, true); cd.setUint16(10, 0, true); cd.setUint16(12, time, true);
+      cd.setUint16(14, date, true); cd.setUint32(16, crc, true); cd.setUint32(20, size, true);
+      cd.setUint32(24, size, true); cd.setUint16(28, name.length, true);
+      cd.setUint32(42, offset, true);
+      dir.push(new Uint8Array(cd.buffer), name);
+      offset += 30 + name.length + size;
+    });
+    const dirSize = dir.reduce((n, c) => n + c.length, 0);
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true);
+    end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+    end.setUint32(12, dirSize, true); end.setUint32(16, offset, true);
+    return new Blob([...body, ...dir, new Uint8Array(end.buffer)], { type: "application/zip" });
+  };
+
+  const EXT = { "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/svg+xml": "svg" };
+  const dataUrlBytes = (url) => {
+    const comma = url.indexOf(",");
+    const meta = url.slice(0, comma);
+    const bin = atob(url.slice(comma + 1));
+    const u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    const mime = meta.slice(5).split(";")[0];
+    return { data: u8, ext: EXT[mime] || "bin" };
+  };
+  const slugify = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+
+  const download = (blob, filename) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 6000);
+  };
+
+  /* ---------- site bundle: real files, real paths ---------- */
+  $("#btnBundle").addEventListener("click", () => {
+    const files = [];
+    const out = works.map((w, i) => {
+      const stem = slugify(w.title);      /* 한글 제목이면 번호만 남습니다 */
+      let n = 0;
+      const blocks = w.blocks.map((b) => {
+        if (b.type !== "image" || b.src.indexOf("data:") !== 0) return { ...b };
+        const { data, ext } = dataUrlBytes(b.src);
+        const name = CFG.imgDir + pad(i + 1) + (stem ? "-" + stem : "") + "-" + (++n) + "." + ext;
+        files.push({ name, data });
+        return { ...b, src: name };
+      });
+      return { ...w, blocks, images: blocks.filter((b) => b.type === "image").map((b) => b.src) };
+    });
+    const enc = new TextEncoder();
+    files.push({ name: CFG.dataUrl, data: enc.encode(JSON.stringify(out, null, 2)) });
+    files.push({ name: "README.txt", data: enc.encode(
+      "DOUBLE AXIS — work bundle\n\n" +
+      "이 압축을 풀면 아래 두 가지가 나옵니다.\n" +
+      "  " + CFG.dataUrl + "   프로젝트 목록\n" +
+      "  " + CFG.imgDir + "     이미지 파일\n\n" +
+      "평소에는 관리자 바의 'GitHub에 발행'을 쓰면 됩니다.\n" +
+      "이 ZIP은 토큰 없이 손으로 배포할 때를 위한 대비책입니다.\n" +
+      "work.html 이 있는 폴더에 그대로 덮어쓰고 커밋하세요.\n" +
+      "폴더 구조 예시:\n" +
+      "  index.html\n  work.html\n  " + CFG.dataUrl + "\n  " + CFG.imgDir + "001-....webp\n\n" +
+      "배포 후에는 브라우저에 남아 있는 편집본을 지워야(관리자 바 > 편집본 지우기)\n" +
+      "배포된 파일이 화면에 표시됩니다.\n"
+    ) });
+    download(zip(files), "double-axis-work-bundle-" + new Date().toISOString().slice(0, 10) + ".zip");
+    toast("이미지 " + (files.length - 2) + "개와 " + CFG.dataUrl + " 를 압축했습니다. 배포한 뒤 '편집본 지우기'를 누르면 배포본이 화면에 뜹니다.");
+  });
+
+  /* ---------- drop the local copy, fall back to the published file ---------- */
+  $("#btnReset").addEventListener("click", () => {
+    if (!confirm("이 브라우저에 저장된 편집본을 지우고 배포된 " + CFG.dataUrl + " 를 다시 읽을까요?\n내보내지 않은 이미지는 사라집니다.")) return;
+    local.del(K.works);
+    location.reload();
+  });
+
+  /* ---------- export / import ---------- */
+  $("#btnExport").addEventListener("click", () => {
+    download(new Blob([JSON.stringify(works, null, 2)], { type: "application/json" }),
+      "double-axis-work-backup-" + new Date().toISOString().slice(0, 10) + ".json");
+    toast("백업용 JSON을 내보냈습니다. (이미지가 안에 그대로 들어 있습니다)");
+  });
+  $("#btnImport").addEventListener("click", () => $("#importFile").click());
+  $("#importFile").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      const incoming = (Array.isArray(parsed) ? parsed : parsed.works || []).map(normalize);
+      if (!incoming.length) throw new Error("항목이 없습니다.");
+      if (!confirm("현재 목록(" + works.length + "개)을 불러온 " + incoming.length + "개로 교체할까요?")) return;
+      works = incoming;
+      save();
+      render();
+      toast("불러왔습니다.");
+    } catch (err) {
+      toast("JSON을 읽지 못했습니다: " + err.message, true);
+    }
+  });
+
+  /* ---------- motion: reveals ---------- */
+  let io = null;
+  const revealScan = () => {
+    const targets = $$("[data-reveal]:not(.is-in)");
+    if (reduce || !("IntersectionObserver" in window)) {
+      targets.forEach((el) => el.classList.add("is-in"));
+      return;
+    }
+    if (!io) {
+      io = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-in");
+          io.unobserve(entry.target);
+        });
+      }, { threshold: 0, rootMargin: "0px 0px -6% 0px" });
+    }
+    const vh = window.innerHeight;
+    targets.forEach((el) => {
+      if (el.getBoundingClientRect().top < vh * 0.94) el.classList.add("is-in");
+      else io.observe(el);
+    });
+  };
+
+  /* ---------- motion: ticker ---------- */
+  const track = $(".ticker-track");
+  let wrapAt = 0, x = 0, vel = 0, dir = 1;
+  if (track) {
+    const words = ["Modeling", "Animation", "Branding", "Rendering"];
+    const unit = () => words.map((w) => "<span>" + w + '</span><span class="sep">/</span>').join("");
+    track.innerHTML = unit();
+    let guard = 0;
+    while (track.scrollWidth < window.innerWidth * 1.3 && guard++ < 20) track.innerHTML += unit();
+    track.innerHTML = track.innerHTML + track.innerHTML;
+    wrapAt = track.scrollWidth / 2;
+  }
+
+  /* ---------- motion: chrome ---------- */
+  const bar = $(".scroll-progress");
+  const head = $("header");
+  const top = $(".to-top");
+  const footer = $("footer");
+  let lastY = window.scrollY, shownTop = false;
+
+  const onScroll = () => {
+    const y = window.scrollY;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    if (bar) bar.style.transform = "scaleX(" + (max > 0 ? y / max : 0).toFixed(4) + ")";
+    if (head) head.classList.toggle("tuck", y > 260 && y > lastY);
+
+    if (footer && top) {
+      const t = footer.getBoundingClientRect().top;
+      top.style.setProperty("--to-top-lift", Math.max(0, window.innerHeight - t + 14) + "px");
+    }
+    const past = y > window.innerHeight * 0.7;
+    if (past !== shownTop) { shownTop = past; top.classList.toggle("is-shown", past); }
+
+    const delta = y - lastY;
+    if (Math.abs(delta) > 0.5) dir = delta > 0 ? 1 : -1;
+    vel += Math.min(Math.abs(delta), 70) * 0.055;
+    lastY = y;
+    revealScan();
+  };
+  addEventListener("scroll", onScroll, { passive: true });
+  addEventListener("resize", onScroll);
+  top.addEventListener("click", () => scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" }));
+
+  if (track && !reduce) {
+    let ticking = false;
+    const tick = () => {
+      if (!ticking) return;
+      vel *= 0.92;
+      x -= dir * (0.55 + vel);
+      if (x <= -wrapAt) x += wrapAt;
+      if (x >= 0) x -= wrapAt;
+      track.style.transform = "translate3d(" + x.toFixed(2) + "px,0,0)";
+      requestAnimationFrame(tick);
+    };
+    const strip = $(".ticker");
+    if ("IntersectionObserver" in window && strip) {
+      new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting === ticking) return;
+        ticking = entry.isIntersecting;
+        if (ticking) requestAnimationFrame(tick);
+      }, { rootMargin: "140px 0px" }).observe(strip);
+    } else { ticking = true; tick(); }
+  }
+
+  /* ---------- motion: magnetic ---------- */
+  if (!reduce && matchMedia("(pointer:fine)").matches) {
+    $$("[data-magnetic]").forEach((el) => {
+      const power = parseFloat(el.dataset.magnetic) || 18;
+      el.addEventListener("pointermove", (e) => {
+        const r = el.getBoundingClientRect();
+        const dx = (e.clientX - (r.left + r.width / 2)) / r.width;
+        const dy = (e.clientY - (r.top + r.height / 2)) / r.height;
+        el.classList.add("pulling");
+        el.style.transform = "translate(" + (dx * power).toFixed(2) + "px," + (dy * power).toFixed(2) + "px)";
+      });
+      el.addEventListener("pointerleave", () => {
+        el.classList.remove("pulling");
+        el.style.transform = "";
+      });
+    });
+  }
+
+  /* ---------- index view: the thumbnail rides the cursor ---------- */
+  const peek = $(".peek");
+  const peekImg = peek.querySelector("img");
+  if (matchMedia("(pointer:fine) and (hover:hover)").matches && !reduce) {
+    let peekOn = false;
+    gallery.addEventListener("pointermove", (e) => {
+      const card = view === "index" ? e.target.closest(".card") : null;
+      const w = card && works.find((x) => x.id === card.dataset.id);
+      const src = w && coverOf(w);
+      if (!src) {
+        if (peekOn) { peek.classList.remove("on"); peekOn = false; }
+        return;
+      }
+      if (peekImg.src !== src) peekImg.src = src;
+      const half = 128;
+      peek.style.left = Math.min(e.clientX + 150, innerWidth - half) + "px";
+      peek.style.top = Math.min(Math.max(e.clientY, 100), innerHeight - 100) + "px";
+      if (!peekOn) { peek.classList.add("on"); peekOn = true; }
+    }, { passive: true });
+    gallery.addEventListener("pointerleave", () => { peek.classList.remove("on"); peekOn = false; });
+  }
+
+  /* ---------- kinetic cursor ---------- */
+  (() => {
+    if (!matchMedia("(pointer:fine) and (hover:hover)").matches) return;
+    const core = $(".cursor-core"), ring = $(".cursor-ring"), aura = $(".cursor-aura"), label = $(".cursor-label");
+    if (!core || !ring || !aura || !label) return;
+    document.body.classList.add("cursor-ready");
+
+    const mouse = { x: innerWidth / 2, y: innerHeight / 2 };
+    const ringPos = { ...mouse }, auraPos = { ...mouse };
+    let lastMouse = { ...mouse }, speed = 0, running = false;
+
+    const state = (target) => {
+      if (target.closest("input,textarea,select")) {
+        document.body.classList.add("cursor-hidden");
+        return;
+      }
+      document.body.classList.remove("cursor-hidden");
+      const hit = target.closest("a,button,.card,.shot");
+      let text = "", color = "#d7ff3a";
+      if (hit?.classList.contains("card")) {
+        text = admin ? "Edit" : "Open";
+        color = admin ? "#ff2f9d" : "#d7ff3a";
+      } else if (hit?.tagName === "BUTTON") { text = "Click"; }
+      else if (hit?.tagName === "A") { text = "Go"; }
+      document.body.classList.toggle("cursor-over", Boolean(hit));
+      document.body.style.setProperty("--cursor-accent", color);
+      label.textContent = text;
+    };
+
+    const wake = () => { if (running) return; running = true; requestAnimationFrame(frame); };
+    const frame = () => {
+      const dx = mouse.x - lastMouse.x, dy = mouse.y - lastMouse.y;
+      speed += (Math.hypot(dx, dy) - speed) * 0.22;
+      const angle = Math.atan2(dy, dx);
+      const stretch = Math.min(speed * 0.014, 0.46);
+      ringPos.x += (mouse.x - ringPos.x) * 0.19;
+      ringPos.y += (mouse.y - ringPos.y) * 0.19;
+      auraPos.x += (mouse.x - auraPos.x) * 0.075;
+      auraPos.y += (mouse.y - auraPos.y) * 0.075;
+      core.style.transform = "translate3d(" + mouse.x + "px," + mouse.y + "px,0)";
+      ring.style.transform = "translate3d(" + ringPos.x + "px," + ringPos.y + "px,0) rotate(" + angle +
+        "rad) scale(" + (1 + stretch).toFixed(3) + "," + (1 - stretch * 0.42).toFixed(3) + ")";
+      label.style.transform = "rotate(" + -angle + "rad)";
+      aura.style.transform = "translate3d(" + auraPos.x + "px," + auraPos.y + "px,0)";
+      lastMouse = { ...mouse };
+      const settled = Math.abs(mouse.x - ringPos.x) < 0.05 && Math.abs(mouse.y - ringPos.y) < 0.05 &&
+        Math.abs(mouse.x - auraPos.x) < 0.05 && Math.abs(mouse.y - auraPos.y) < 0.05 && speed < 0.05;
+      if (settled) running = false; else requestAnimationFrame(frame);
+    };
+
+    document.addEventListener("pointermove", (e) => {
+      mouse.x = e.clientX; mouse.y = e.clientY;
+      document.body.classList.add("cursor-active");
+      state(e.target);
+      wake();
+    }, { passive: true });
+    const release = () => document.body.classList.remove("cursor-down");
+    document.addEventListener("pointerdown", () => document.body.classList.add("cursor-down"));
+    document.addEventListener("pointerup", release);
+    /* A native drag swallows pointerup, so without these the ring stayed
+       stuck in its pressed state and the cursor froze where the drag began. */
+    document.addEventListener("pointercancel", release);
+    document.addEventListener("dragend", release);
+    document.addEventListener("drop", release);
+    addEventListener("blur", release);
+
+    /* pointermove stops during a drag; dragover carries the position instead */
+    document.addEventListener("dragover", (e) => {
+      mouse.x = e.clientX; mouse.y = e.clientY;
+      wake();
+    }, { passive: true });
+    document.documentElement.addEventListener("mouseleave", () => {
+      document.body.classList.add("cursor-hidden"); running = false;
+    });
+    document.documentElement.addEventListener("mouseenter", () => {
+      document.body.classList.remove("cursor-hidden"); wake();
+    });
+    wake();
+  })();
+
+  /* ---------- boot ---------- */
+  (async () => {
+    await load();
+    setView(view);
+    token = session.get("da_gh_token") || local.get(K.token) || "";
+    if (token) {
+      session.set("da_gh_token", token);
+      setAdmin(true, false);
+    } else {
+      render();
+    }
+    onScroll();
+    if (!local.live) toast("이 브라우저에서는 저장이 되지 않습니다(시크릿 모드 등). 편집 내용은 새로고침하면 사라집니다.", true);
+    /* deep link: work.html#w=<id> opens a project */
+    const m = location.hash.match(/^#w=(.+)$/);
+    if (m && works.some((w) => w.id === m[1])) openLightbox(m[1]);
+  })();
+})();
+</script>
+</body>
+</html>
