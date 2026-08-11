@@ -519,9 +519,82 @@
 
   .send-btn[disabled]{ opacity:.55; cursor:progress; }
 
-  .contact-form.sent .form-grid{ display:none; }
-  .contact-form.sent .form-status{
-    margin-top:0; font-size:14px; line-height:1.6;
+  /* ---- sent state ---- */
+  /* The card keeps roughly the height it had while it was a form, so the
+     page underneath does not jump up as the fields are swapped out. */
+  .contact-form.sent .form-grid,
+  .contact-form.sent .form-status{ display:none; }
+
+  .form-done{ display:none; }
+  .contact-form.sent .form-done{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    justify-content:center;
+    min-height:280px;
+    animation:doneIn .55s cubic-bezier(.16,.84,.24,1) both;
+  }
+  @keyframes doneIn{
+    from{ opacity:0; transform:translateY(14px); }
+    to  { opacity:1; transform:none; }
+  }
+
+  .done-check{
+    width:46px; height:46px;
+    margin-bottom:22px;
+    border:1.5px solid #0a0a0c;
+    border-radius:50%;
+    display:grid; place-items:center;
+    flex:none;
+  }
+  .done-check svg{ width:22px; height:22px; display:block; }
+  .done-check path{
+    fill:none; stroke:#0a0a0c; stroke-width:2.4;
+    stroke-linecap:square; stroke-linejoin:miter;
+    stroke-dasharray:26; stroke-dashoffset:26;
+    animation:drawTick .42s cubic-bezier(.5,0,.2,1) .34s forwards;
+  }
+  @keyframes drawTick{ to{ stroke-dashoffset:0; } }
+
+  .done-title{
+    font-family:'Anton', sans-serif;
+    text-transform:uppercase;
+    font-size:clamp(26px, 4vw, 38px);
+    line-height:.94;
+    letter-spacing:.01em;
+    margin-bottom:14px;
+  }
+  .done-body{
+    font-size:13.5px; line-height:1.65;
+    max-width:44ch;
+    color:rgba(10,10,12,.78);
+  }
+  .done-body strong{ font-weight:600; color:#0a0a0c; }
+  .done-meta{
+    margin-top:26px;
+    padding-top:16px;
+    border-top:1px solid rgba(10,10,12,.22);
+    width:100%;
+    display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+    font-size:10.5px; letter-spacing:.13em; text-transform:uppercase;
+  }
+  .done-ref{ color:rgba(10,10,12,.5); }
+  .done-again{
+    background:none; border:none; padding:0;
+    font:inherit; color:#0a0a0c; font-weight:600;
+    letter-spacing:.13em; text-transform:uppercase;
+    cursor:pointer; text-decoration:underline;
+    text-underline-offset:3px;
+  }
+  .done-again:focus-visible{ outline:2px solid #0a0a0c; outline-offset:3px; }
+
+  @media (prefers-reduced-motion: reduce){
+    .contact-form.sent .form-done{ animation:none; }
+    .done-check path{ animation:none; stroke-dashoffset:0; }
+  }
+  @media (max-width:560px){
+    .contact-form.sent .form-done{ min-height:0; }
+    .done-check{ width:40px; height:40px; margin-bottom:18px; }
   }
 
   /* ===== BACK TO TOP ===== */
@@ -1311,6 +1384,19 @@
         <p class="form-status" role="status" aria-live="polite"></p>
       </div>
     </div>
+
+    <div class="form-done" role="status" aria-live="polite" tabindex="-1">
+      <span class="done-check" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 12.5 L9.5 18 L20 6"/></svg>
+      </span>
+      <p class="done-title">Message sent</p>
+      <p class="done-body"></p>
+      <div class="done-meta">
+        <span class="done-ref"></span>
+        <button type="button" class="done-again">Send another</button>
+      </div>
+      </div>
+    </div>
     </form>
   </div>
 </section>
@@ -1780,7 +1866,40 @@
     const status  = form.querySelector(".form-status");
     const button  = form.querySelector(".send-btn");
     const consent = form.querySelector("#f-consent");
+    const done    = form.querySelector(".form-done");
     const INBOX   = "doubleaxis.3d@gmail.com";
+
+    /* Swap the fields for a confirmation panel. Their address is echoed
+       back so a typo in it is obvious while they can still do something
+       about it, and focus moves across so the change is announced rather
+       than leaving the caret in a field that is no longer there. */
+    const showSent = (sender) => {
+      const to = sender.email
+        ? '<strong>' + sender.email.replace(/[<&>]/g, "") + '</strong>'
+        : "the address you gave";
+      done.querySelector(".done-body").innerHTML =
+        (sender.name ? "Thanks, " + sender.name.replace(/[<&>]/g, "") + " — your" : "Your") +
+        " message is with us. We read everything ourselves and usually reply to " + to +
+        " within a couple of working days.";
+
+      const stamp = new Date();
+      done.querySelector(".done-ref").textContent =
+        "Sent " + stamp.toLocaleDateString(undefined, { day:"numeric", month:"short" }) +
+        " at " + stamp.toLocaleTimeString(undefined, { hour:"2-digit", minute:"2-digit" });
+
+      form.classList.add("sent");
+      done.focus({ preventScroll: true });
+    };
+
+    /* let them file a second enquiry without reloading */
+    form.querySelector(".done-again").addEventListener("click", () => {
+      form.reset();
+      form.classList.remove("sent");
+      say("", null);
+      form.querySelectorAll(".invalid").forEach((el) => el.classList.remove("invalid"));
+      const first = form.querySelector("#f-name");
+      if (first) first.focus();
+    });
 
     const wrap = (el) => el.closest(".field") || el.closest(".consent");
 
@@ -1839,8 +1958,7 @@
 
       /* the bot trap: quietly accept and go no further */
       if (form.elements["company-website"] && form.elements["company-website"].value) {
-        form.classList.add("sent");
-        say("Thank you — your message is on its way.", "ok");
+        showSent({ name: "", email: "" });
         return;
       }
 
@@ -1872,8 +1990,7 @@
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
 
-        form.classList.add("sent");
-        say("Thank you — your message is on its way. We usually reply within a couple of working days.", "ok");
+        showSent({ name: data.name, email: data.email });
       } catch (err) {
         button.disabled = false;
         button.textContent = label;
