@@ -1271,17 +1271,9 @@
 
   <div class="contact-card" data-reveal>
     <h4>Reach us</h4>
-    <!-- Netlify picks the form up from the deployed HTML at build time, so the
-         name, the data-netlify flag and the matching hidden form-name field all
-         have to be present in the markup as shipped. -->
-    <form class="contact-form"
-          name="contact"
-          method="POST"
-          action="/"
-          data-netlify="true"
-          netlify-honeypot="company-website"
-          novalidate>
-      <input type="hidden" name="form-name" value="contact">
+    <!-- GitHub Pages serves static files only, so the submission is handed to
+         a form service. The endpoint is set in FORM_ENDPOINT further down. -->
+    <form class="contact-form" name="contact" method="POST" novalidate>
       <p class="hp-field" aria-hidden="true">
         <label>Leave this empty <input name="company-website" tabindex="-1" autocomplete="off"></label>
       </p>
@@ -1761,11 +1753,27 @@
   })();
 
   /* ---------- 0d. contact form ----------
-     Netlify accepts a normal POST back to the page's own URL, so submitting
-     over fetch keeps the visitor on the page instead of bouncing them to a
-     plain success screen. If the request fails for any reason the form falls
-     back to a mailto: draft rather than losing what they typed. */
+     A static host has nothing to POST to, so the submission goes to a form
+     service which forwards it on as email. Submitting over fetch keeps the
+     visitor on the page; if the request fails they get a mailto: draft
+     pre-filled with what they wrote rather than losing it.
+
+     ── SETUP ────────────────────────────────────────────────────────────
+     Paste the endpoint for whichever service you signed up with.
+
+       Web3Forms   https://api.web3forms.com/submit
+                   ...and put the access key in FORM_ACCESS_KEY below
+
+       Formspree   https://formspree.io/f/YOUR_FORM_ID
+                   ...and leave FORM_ACCESS_KEY empty
+
+     Until FORM_ENDPOINT is filled in, the form skips the network entirely
+     and opens a pre-addressed email instead, so it is never a dead button.
+     ─────────────────────────────────────────────────────────────────── */
   (() => {
+    const FORM_ENDPOINT   = "https://api.web3forms.com/submit";
+    const FORM_ACCESS_KEY = "46a39b88-4656-46b3-b175-d64aba16ac04";
+
     const form = document.querySelector(".contact-form");
     if (!form) return;
 
@@ -1829,20 +1837,39 @@
       e.preventDefault();
       if (!validate()) return;
 
+      /* the bot trap: quietly accept and go no further */
+      if (form.elements["company-website"] && form.elements["company-website"].value) {
+        form.classList.add("sent");
+        say("Thank you — your message is on its way.", "ok");
+        return;
+      }
+
+      /* no service wired up yet: hand off to the mail client */
+      if (!FORM_ENDPOINT) {
+        window.location.href = mailtoFallback();
+        return;
+      }
+
       button.disabled = true;
       const label = button.textContent;
       button.textContent = "Sending…";
       say("", null);
 
       try {
-        const res = await fetch(form.getAttribute("action") || "/", {
+        const data = Object.fromEntries(new FormData(form).entries());
+        delete data["company-website"];
+        if (FORM_ACCESS_KEY) data.access_key = FORM_ACCESS_KEY;
+        data.subject = "Project enquiry from " + (data.name || "the website");
+        /* so hitting reply in the inbox goes to the sender, not to the
+           form service */
+        data.from_name = data.name || "Double Axis website";
+        data.replyto = data.email || "";
+
+        const res = await fetch(FORM_ENDPOINT, {
           method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams(new FormData(form)).toString()
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify(data)
         });
-        /* A 404 here means Netlify never registered the form. That only
-           happens at deploy time, so it points at the deploy rather than
-           at anything the visitor did. */
         if (!res.ok) throw new Error("HTTP " + res.status);
 
         form.classList.add("sent");
