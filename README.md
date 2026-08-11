@@ -23,7 +23,8 @@ No build step, no dependencies — open `index.html` in a browser and it runs.
 │       ├── statement-bg.webp
 │       ├── peek-rabbit.png
 │       └── peek-lynx.png
-├── netlify.toml            # deploy settings and cache headers
+├── .github/workflows/
+│   └── pages.yml           # publishes to GitHub Pages on push to main
 ├── .nojekyll               # keeps GitHub Pages from processing the files
 └── LICENSE
 ```
@@ -43,6 +44,8 @@ Any static server works equally well (`npx serve`, `php -S localhost:8000`, etc.
 
 If you just want to look at the page without a server, use `standalone.html` from the same release — everything is embedded in that one file and it opens by double-clicking. It is for previewing only; deploy the split version, which is what makes the page paint in well under a second.
 
+Note that the form cannot submit from `file://` either — most form services reject requests with no origin. Use the local server to test it.
+
 ---
 
 ## Deploying
@@ -50,30 +53,41 @@ If you just want to look at the page without a server, use `standalone.html` fro
 ### GitHub Pages
 
 1. Push to a repository
-2. **Settings → Pages → Source: Deploy from a branch**
-3. Pick `main` and `/ (root)`, then Save
+2. **Settings → Pages → Source: GitHub Actions**
 
-The site appears at `https://<user>.github.io/<repo>/` within a minute or two. `.nojekyll` is already included so Pages serves the files as-is.
+The workflow in `.github/workflows/pages.yml` publishes the repo as-is on every push to `main`. The site appears at `https://<user>.github.io/<repo>/`.
 
-### Netlify (current target)
+Deploying from a branch works too (**Source: Deploy from a branch**, `main` / `/ (root)`) — `.nojekyll` is included so Pages serves the files untouched. The workflow is only there to make deploys visible and repeatable.
 
-Connect the repository — `netlify.toml` supplies the settings, so there is no build command and the publish directory is the repo root.
+Every asset path in the page is relative, so it works whether the site sits at a domain root or under a repo subpath.
 
-**After the first deploy, set the notification email.** Netlify collects submissions whether or not this is configured, but nothing is forwarded until it is:
+**On the video.** `hero.mp4` is 6.9 MB. That is well inside the 100 MB per-file and 1 GB per-repo limits, but Pages has a soft 100 GB/month bandwidth guideline — roughly 14,000 full page loads. Fine for a portfolio; worth watching if the site ever gets busy.
 
-1. **Site configuration → Forms → Form notifications**
-2. **Add notification → Email notification**
-3. Form: `contact`, send to `doubleaxis.3d@gmail.com`
+## The contact form
 
-Submissions are also kept under **Forms → contact** in the dashboard, which is the place to check if an email ever goes missing.
+GitHub Pages serves static files and nothing else — there is no server to receive a POST. The submission goes to [Web3Forms](https://web3forms.com), which forwards it as email to **doubleaxis.3d@gmail.com**.
 
-The free tier covers 100 submissions per month.
+This is already wired up; nothing needs configuring to deploy. The settings sit near the top of the contact-form block in `index.html`:
 
-### Vercel / Cloudflare Pages
+```js
+const FORM_ENDPOINT   = "https://api.web3forms.com/submit";
+const FORM_ACCESS_KEY = "46a39b88-4656-46b3-b175-d64aba16ac04";
+```
 
-Both will serve the site, but **the contact form only works on Netlify** — it depends on Netlify Forms. On another host the form needs a different backend (Formspree, Basin, or a serverless function).
+The access key is meant to be public — it only authorises sending to the address it was issued for, so there is nothing to leak by shipping it in client-side code. To point the form at a different inbox, request a new key at web3forms.com and swap this one out.
 
----
+Each submission is sent as JSON with `replyto` set to whoever filled in the form, so replying from the inbox goes straight back to them.
+
+The free tier covers 250 submissions a month.
+
+**How the form behaves**
+
+- Name, email, message and the consent box are required. Failing fields are outlined and given an inline message, and the first one takes focus
+- Submitting goes over `fetch`, so the visitor stays on the page
+- On success the fields are replaced by a thank-you note
+- If the request fails, the button re-enables and a `mailto:` link appears pre-filled with everything they typed
+- If the key is ever cleared out, Send falls back to opening a pre-addressed email rather than becoming a dead button
+- A honeypot field named `company-website` is checked before any network call and stripped from the payload
 
 ## Notes on the implementation
 
@@ -96,22 +110,6 @@ Both will serve the site, but **the contact form only works on Netlify** — it 
 Chrome / Edge 105+, Safari 15.4+, Firefox 121+. The layout depends on `:has()` and `svh` units; older browsers fall back to a static, unanimated version of the same page.
 
 ---
-
-## The contact form
-
-Handled by [Netlify Forms](https://docs.netlify.com/forms/setup/) — no backend to run. Netlify detects the form in the deployed HTML at build time, which is why `name="contact"`, `data-netlify="true"` and the hidden `form-name` field all have to be present in the markup as shipped rather than injected by script.
-
-Submissions arrive at **doubleaxis.3d@gmail.com** once the notification is configured (see above).
-
-**How it behaves**
-
-- Name, email, message and the consent checkbox are required. Failing fields are outlined, given an inline message, and the first one takes focus
-- Submitting goes over `fetch`, so the visitor stays on the page instead of being sent to a plain success screen
-- On success the fields are replaced by a thank-you message
-- If the request fails, the button re-enables and a `mailto:` link appears pre-filled with everything they typed, so the message is not lost
-- A honeypot field named `company-website` catches naive bots. It is positioned off-screen rather than `display:none`, since some bots skip hidden inputs
-
-**Testing it.** Netlify Forms only runs on a Netlify deploy — the form will not submit from `localhost` or from a Pages deploy. Use a deploy preview to check it end to end.
 
 ## Known gaps
 
