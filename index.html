@@ -1,0 +1,2017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOUBLE AXIS — Visual Artist / Technical Designer</title>
+<style>
+  /* Fonts are embedded so the file renders identically with no network.
+     Subset to Latin; variable axes preserved (Archivo needs wdth for
+     font-stretch:71%, Space Grotesk needs wght 300-700). */
+  @font-face{
+    font-family:'Anton';
+    src:url('assets/fonts/anton.woff2') format('woff2');
+    font-weight:400; font-style:normal; font-display:block;
+  }
+  @font-face{
+    font-family:'Archivo';
+    src:url('assets/fonts/archivo.woff2') format('woff2');
+    font-weight:900; font-stretch:62% 125%; font-style:normal; font-display:block;
+  }
+  @font-face{
+    font-family:'Space Grotesk';
+    src:url('assets/fonts/space-grotesk.woff2') format('woff2');
+    font-weight:300 700; font-style:normal; font-display:block;
+  }
+
+  :root{
+    --bg: #0a0a0c;
+    --white: #f4f4f2;
+    --lime: #d7ff3a;
+    --pink: #ff2f9d;
+    --mint: #00ffae;
+    --stmt-pink: #e0007f;
+    --violet: #8a3ffc;
+    --blue: #4b6bff;
+    --grey: #8a8a92;
+    --line: rgba(244,244,242,0.18);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--white);
+    font-family:'Space Grotesk', sans-serif;
+    font-synthesis:none;
+    overflow-x:clip;
+  }
+  .display{
+    font-family:'Anton', sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.005em;
+    line-height:0.86;
+  }
+  a{color:inherit; text-decoration:none;}
+  ::selection{background:var(--lime); color:#0a0a0c;}
+
+  /* ===== KINETIC CURSOR ===== */
+  .cursor-core,
+  .cursor-ring,
+  .cursor-aura{
+    position:fixed;
+    left:0; top:0;
+    z-index:9999;
+    pointer-events:none;
+    opacity:0;
+  }
+  .cursor-core{
+    width:7px; height:7px;
+    margin:-3.5px 0 0 -3.5px;
+    border-radius:50%;
+    background:var(--cursor-accent,var(--lime));
+    box-shadow:0 0 14px var(--cursor-accent,var(--lime));
+    transition:width .22s ease,height .22s ease,margin .22s ease,background .22s ease;
+  }
+  .cursor-ring{
+    width:46px; height:46px;
+    margin:-23px 0 0 -23px;
+    display:grid; place-items:center;
+    border:1px solid color-mix(in srgb,var(--cursor-accent,var(--lime)) 76%,transparent);
+    border-radius:50%;
+    background:rgba(10,10,12,.04);
+    backdrop-filter:blur(1px);
+    transition:
+      width .3s cubic-bezier(.2,.8,.2,1),
+      height .3s cubic-bezier(.2,.8,.2,1),
+      margin .3s cubic-bezier(.2,.8,.2,1),
+      border-color .22s ease,
+      background .22s ease;
+  }
+  .cursor-label{
+    opacity:0;
+    color:var(--white);
+    font-size:8px;
+    font-weight:600;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    white-space:nowrap;
+    transition:opacity .18s ease;
+  }
+  .cursor-aura{
+    width:260px; height:260px;
+    margin:-130px 0 0 -130px;
+    border-radius:50%;
+    background:radial-gradient(circle,var(--cursor-accent,var(--lime)) 0%,transparent 66%);
+    filter:blur(26px);
+    mix-blend-mode:screen;
+    opacity:0;
+    transition:background .25s ease;
+  }
+  body.cursor-active .cursor-core,
+  body.cursor-active .cursor-ring{opacity:1;}
+  body.cursor-active .cursor-aura{opacity:.055;}
+  body.cursor-over .cursor-ring{
+    width:86px; height:86px;
+    margin:-43px 0 0 -43px;
+    background:color-mix(in srgb,var(--cursor-accent,var(--lime)) 10%,rgba(10,10,12,.08));
+    border-color:var(--cursor-accent,var(--lime));
+  }
+  body.cursor-over .cursor-core{
+    width:4px; height:4px;
+    margin:-2px 0 0 -2px;
+  }
+  body.cursor-over .cursor-label{opacity:1;}
+  body.cursor-down .cursor-ring{
+    width:34px; height:34px;
+    margin:-17px 0 0 -17px;
+    background:color-mix(in srgb,var(--cursor-accent,var(--lime)) 26%,transparent);
+  }
+  body.cursor-down .cursor-core{
+    width:11px; height:11px;
+    margin:-5.5px 0 0 -5.5px;
+  }
+  body.cursor-hidden .cursor-core,
+  body.cursor-hidden .cursor-ring,
+  body.cursor-hidden .cursor-aura{opacity:0;}
+
+  @media (pointer:fine) and (hover:hover){
+    body.cursor-ready,
+    body.cursor-ready a,
+    body.cursor-ready button,
+    body.cursor-ready .service{cursor:none;}
+  }
+
+  /* ===== NAV ===== */
+  header{
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:26px 5vw;
+    mix-blend-mode:difference;
+  }
+  /* the header is fixed, so jump targets need to clear it or the first
+     line of each section lands underneath the menu */
+  #work, #services, #contact{ scroll-margin-top:90px; }
+  .logo{font-family:'Anton'; font-size:18px; letter-spacing:0.05em; text-transform:uppercase;}
+  nav ul{display:flex; gap:34px; list-style:none;}
+  nav a{font-size:12px; text-transform:uppercase; letter-spacing:0.1em; opacity:0.85;}
+  nav a:hover{opacity:1;}
+
+  /* ===== HERO ===== */
+  .hero{
+    position:relative;
+    /* svh, not vh: on phones vh tracks the LARGE viewport, so the scroll
+       track grows and shrinks by ~280px every time the URL bar collapses
+       or reappears. That shifts the page under the finger mid-scroll and
+       re-maps the hero's scroll progress, which is what made the video
+       lurch on bar-type handsets. svh is the stable floor. */
+    height:220svh;
+    height:calc(var(--vh-pin, 100svh) * 2.2);
+    min-height:0;
+    display:block;
+    padding:0;
+    overflow:visible;
+  }
+  .hero-sticky{
+    position:sticky;
+    top:0;
+    height:100svh;
+    height:var(--vh-pin, 100svh);
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+    padding:0 5vw 26px;
+    overflow:hidden;
+    isolation:isolate;
+  }
+  .hero-media{
+    position:absolute;
+    inset:-3%;
+    z-index:0;
+    overflow:hidden;
+    pointer-events:none;
+  }
+  .hero-video{
+    width:100%; height:100%;
+    object-fit:cover;
+    object-position:center center;
+    transform:scale(var(--hero-video-scale,1.03));
+    transform-origin:center center;
+    will-change:transform;
+  }
+  .hero-media::after{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      linear-gradient(180deg,rgba(10,10,12,.08) 0%,rgba(10,10,12,.14) 48%,rgba(10,10,12,.78) 87%,rgba(10,10,12,.96) 100%),
+      linear-gradient(90deg,rgba(10,10,12,.18),transparent 35%,transparent 68%,rgba(10,10,12,.18));
+  }
+  .hero-tag{
+    position:absolute; z-index:3; font-size:11px; text-transform:uppercase;
+    letter-spacing:0.14em; color:var(--grey);
+    writing-mode:vertical-rl;
+  }
+  .hero-tag.left{
+    left:1.6vw; top:15%; height:38%;
+    display:flex; align-items:center; gap:14px;
+    writing-mode:vertical-rl;
+    transform:rotate(180deg);
+  }
+  .hero-tag.left .plus{ writing-mode:horizontal-tb; }
+  .hero-tag.left-bottom{ left:1.6vw; bottom:16%; font-size:16px; color:var(--grey); }
+  .hero-tag.right{
+    right:1.6vw; top:14%; height:40%;
+    display:flex; flex-direction:row; align-items:flex-start; gap:10px;
+    writing-mode:vertical-rl;
+    padding:4px 12px 4px 0;
+    border-right:1px solid var(--line);
+  }
+  .hero-tag.right span{ display:block; }
+  .hero-tag.right .rule{ display:none; }
+
+
+
+  .hero-title{
+    position:relative; z-index:2;
+    font-size:clamp(52px, min(10.2vw, 13svh), 148px);
+    color:transparent;
+    -webkit-text-stroke:clamp(1.8px, .13vw, 2.4px) var(--white);
+    paint-order:stroke fill;
+  }
+  .hero-title .axis-line{
+    opacity:0.35;
+  }
+
+  .hero-sub{
+    position:relative; z-index:2;
+    margin-top:22px;
+    font-size:12px; letter-spacing:0.04em; color:rgba(244,244,242,0.85);
+  }
+  .hero-sub p{margin-bottom:4px;}
+  .hero-sub .rule-row{ display:flex; align-items:center; gap:10px; }
+  .hero-sub .rule-row .dots{ flex:1; height:1px; background:var(--line); max-width:160px; }
+
+  .hero-meta{
+    position:relative; z-index:2;
+    display:flex; justify-content:space-between; align-items:flex-end;
+    margin-top:34px; padding-top:18px; border-top:1px solid var(--line);
+    flex-wrap:wrap; gap:16px;
+  }
+  .hero-meta .left{font-size:12px; letter-spacing:0.05em; text-transform:uppercase; color:rgba(244,244,242,0.8);}
+  .hero-meta .right{font-size:9.5px; letter-spacing:0.02em; color:var(--grey); text-align:right; line-height:1.6;}
+
+  /* ===== STATEMENT (diagonal gradient) ===== */
+  .statement{
+    position:relative;
+    padding:min(6vw,72px) 5vw min(9vw,110px);
+    background:#0a0a0c;
+    overflow:hidden;
+  }
+  /* Scale the artwork to the live statement content instead of the viewport
+     width, so both body paragraphs stay inside the visual field. */
+  .statement-copy{
+    /* The plate is pushed PAST the top of .peek-section. Two things follow:
+       `cover` has a taller box to fill, so the artwork scales up and the dead
+       band disappears, and the artwork's own hard bottom edge lands behind the
+       opaque panel instead of showing. Must stay > .peek-section's margin-top. */
+    --stmt-bleed:190px;
+  }
+  .statement-copy::before{
+    content:"";
+    position:absolute;
+    z-index:-1;
+    top:max(-72px,-6vw);
+    left:-5vw;
+    right:-5vw;
+    bottom:calc(var(--stmt-bleed) * -1);
+    background-image:url('assets/img/statement-bg.webp');
+    background-size:cover;
+    background-position:center top;
+    background-repeat:no-repeat;
+  }
+  .statement-copy{
+    position:relative;
+    z-index:2;
+    isolation:isolate;
+  }
+  .statement-type{
+    position:relative;
+    /* No max-width: the kicker, the headline and the two rules must line up
+       with the hero's 5vw gutters. A centred 1440px cap pulled them inwards
+       on anything wider than ~1630px while .statement-body stayed full width. */
+    padding:clamp(20px,2.1vw,32px) 0 clamp(40px,4.5vw,64px);
+    border-top:1px solid rgba(244,244,242,.24);
+    border-bottom:1px solid rgba(244,244,242,.18);
+  }
+  .statement-type::before,
+  .statement-type::after{
+    content:"";
+    position:absolute;
+    top:-4px;
+    width:7px;
+    height:7px;
+    background:#0a0a0c;
+    border:1px solid var(--lime);
+    box-shadow:0 0 0 1px rgba(10,10,12,.72);
+  }
+  .statement-type::before{left:0;}
+  .statement-type::after{right:0;}
+  .statement-kicker{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:24px;
+    font-size:clamp(7px,.58vw,9px);
+    font-weight:600;
+    letter-spacing:.12em;
+    line-height:1.4;
+    text-transform:uppercase;
+  }
+  .statement-kicker{
+    margin-bottom:clamp(34px,4.1vw,60px);
+    color:rgba(210,203,255,.68);
+  }
+  .statement-kicker .statement-index{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    color:var(--lime);
+  }
+  .statement-kicker .statement-index::before{
+    content:"";
+    width:7px;
+    height:7px;
+    flex:0 0 auto;
+    border-radius:50%;
+    background:var(--pink);
+    box-shadow:0 0 12px rgba(255,47,157,.8);
+  }
+  .statement-kicker .statement-system{
+    text-align:right;
+  }
+  .statement h2{
+    position:relative; z-index:2;
+    /* Archivo variable at 71% width — measured to sit almost exactly halfway
+       between Anton (0.472 width per cap) and Archivo Black (0.986).
+       The width axis leaves cap height untouched, so the vertical rhythm
+       matches the Archivo Black version exactly. */
+    font-family:'Archivo', sans-serif;
+    font-weight:900;
+    font-stretch:71%;
+    font-size:clamp(28px, 5.2vw, 74px);
+    letter-spacing:-0.015em;
+    max-width:1040px;
+    line-height:1.2;
+    color:transparent;
+    -webkit-text-stroke:clamp(0.6px, .075vw, 1.05px) var(--white);
+  }
+  /* direct children only — the nested accent spans must stay inline,
+     otherwise "precision" gets pushed onto its own line */
+  .statement h2 > span{ display:block; }
+
+  /* The reference block is exactly as wide as the word but shifted right,
+     so the R hangs off the left edge and pink is left over past the D —
+     a deliberately misregistered print plate, not a symmetric highlight.
+     Offsets below are derived from Archivo's metrics at line-height 1.2. */
+  .statement h2 .accent-pink{
+    position:relative;
+    display:inline-block;
+    z-index:0;
+    color:var(--mint);
+    -webkit-text-stroke-width:0;
+  }
+  .statement h2 .accent-pink::before{
+    content:"";
+    position:absolute;
+    z-index:-1;
+    left:.193em;
+    /* The word space here is only .106em, so the original -.193em overhang
+       bit ~6px into the W of "with". .045em keeps the plate spilling past the
+       D without touching the next word. */
+    right:-.045em;
+    top:.051em;
+    bottom:.174em;
+    background:var(--stmt-pink);
+  }
+  .statement h2 .accent-lime{
+    color:var(--lime);
+    -webkit-text-stroke-width:0;
+  }
+
+  .statement-body{
+    position:relative; z-index:2;
+    display:flex; justify-content:space-between; gap:60px; flex-wrap:wrap;
+    margin-top:30px;
+  }
+  .statement-body p{max-width:400px; font-size:13px; line-height:1.65; color:rgba(244,244,242,0.92);}
+  .statement-body .right-p{ text-align:right; align-self:flex-end; }
+
+
+  /* ===== CURIOUS VISITOR ===== */
+  .peek-section{
+    position:relative;
+    z-index:2;
+    height:460px;
+    width:calc(100% + 10vw);
+    margin:90px -5vw -110px;
+    overflow:hidden;
+    background:
+      radial-gradient(circle at 50% 68%,rgba(75,107,255,.15),transparent 34%),
+      linear-gradient(180deg,#0a0a0c,#11101a);
+    border-top:1px solid var(--line);
+  }
+  .peek-label{
+    position:absolute;
+    left:5vw; top:40px;
+    color:rgba(244,244,242,.42);
+    font-size:9px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+  }
+  .peek-label::before{
+    content:"+";
+    margin-right:10px;
+    color:var(--lime);
+  }
+  .peek-animal-window{
+    position:absolute;
+    bottom:72px;
+    width:min(310px,40vw);
+    height:350px;
+    overflow:hidden;
+    transform:translateX(-50%);
+    z-index:1;
+    pointer-events:none;
+  }
+  .peek-rabbit-window{left:35%;}
+  .peek-lynx-window{left:65%;}
+  .peek-animal{
+    position:absolute;
+    left:50%; bottom:-4px;
+    width:100%; height:auto;
+    transform:translate(-50%,106%) scale(.92);
+    transform-origin:center bottom;
+    filter:drop-shadow(0 18px 30px rgba(0,0,0,.45));
+    transition:transform .88s cubic-bezier(.16,1.38,.34,1);
+    will-change:transform;
+  }
+  .peek-rabbit{width:88%;}
+  .peek-lynx{
+    transition-delay:.14s;
+    filter:drop-shadow(0 18px 30px rgba(0,0,0,.48));
+  }
+  .peek-section.is-visible .peek-animal{
+    transform:translate(-50%,0) scale(1);
+  }
+  .peek-wall{
+    position:absolute;
+    left:0; right:0; bottom:0;
+    height:120px;
+    z-index:2;
+    background:
+      linear-gradient(90deg,transparent,rgba(215,255,58,.18) 50%,transparent) top/100% 1px no-repeat,
+      linear-gradient(115deg,#15131d,#252036 54%,#121118);
+    border-top:1px solid rgba(244,244,242,.22);
+    box-shadow:0 -16px 40px rgba(0,0,0,.34);
+  }
+  .peek-wall::after{
+    content:"";
+    position:absolute;
+    left:5vw; right:5vw; top:28px;
+    height:1px;
+    background:linear-gradient(90deg,var(--lime),transparent 28%,transparent 72%,var(--pink));
+    opacity:.55;
+  }
+  .peek-wall-note{
+    position:absolute;
+    right:5vw; bottom:26px;
+    color:rgba(244,244,242,.35);
+    font-size:8px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+
+  /* ===== CONTACT FORM STATES ===== */
+  /* The bot trap has to be reachable by a script filling the DOM but never
+     shown to a person; display:none would let some bots skip it. */
+  .hp-field{
+    position:absolute; width:1px; height:1px;
+    overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;
+  }
+  .field.invalid{ border-bottom-color:#c2185b; }
+  .field .field-error{
+    display:none;
+    margin-top:6px;
+    font-size:10.5px; letter-spacing:.04em; text-transform:uppercase;
+    color:#c2185b;
+  }
+  .field.invalid .field-error{ display:block; }
+  .consent.invalid{ color:#c2185b; }
+  .consent.invalid input{ outline:2px solid #c2185b; outline-offset:2px; }
+
+  .form-status{
+    margin-top:14px;
+    font-size:12px; line-height:1.5; font-weight:600;
+    min-height:0;
+  }
+  .form-status:empty{ display:none; }
+  .form-status.is-error{ color:#c2185b; }
+  .form-status.is-ok{ color:#0a0a0c; }
+
+  .send-btn[disabled]{ opacity:.55; cursor:progress; }
+
+  .contact-form.sent .form-grid{ display:none; }
+  .contact-form.sent .form-status{
+    margin-top:0; font-size:14px; line-height:1.6;
+  }
+
+  /* ===== BACK TO TOP ===== */
+  .to-top{
+    position:fixed;
+    right:5vw;
+    --to-top-gap:34px;
+    bottom:calc(var(--to-top-gap) + var(--to-top-lift, 0px));
+    z-index:60;
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    min-height:46px;
+    padding:0 17px;
+    /* dark plate with a lime keyline, so it holds up over the dark
+       sections and over the lime footer alike */
+    background:var(--bg);
+    color:var(--lime);
+    border:1px solid var(--lime);
+    font-family:inherit;
+    font-size:10.5px;
+    font-weight:600;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    cursor:pointer;
+    opacity:0;
+    transform:translateY(14px);
+    pointer-events:none;
+    transition:opacity .45s ease,
+               transform .45s cubic-bezier(.16,.84,.24,1),
+               background .25s ease,
+               color .25s ease;
+  }
+  .to-top.is-shown{ opacity:1; transform:none; pointer-events:auto; }
+  .to-top .to-top-arrow{
+    font-size:13px; line-height:1; transform:translateY(-1px);
+    transition:transform .3s cubic-bezier(.16,.84,.24,1);
+  }
+  @media (pointer:fine) and (hover:hover){
+    .to-top:hover{ background:var(--lime); color:var(--bg); }
+    .to-top:hover .to-top-arrow{ transform:translateY(-4px); }
+  }
+  .to-top:focus-visible{ outline:2px solid var(--lime); outline-offset:3px; }
+  .to-top:active{ transform:translateY(1px); }
+  @media (max-width:560px){
+    .to-top{ --to-top-gap:20px; padding:0 13px; font-size:10px; letter-spacing:.11em; gap:7px; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .to-top{ transition:opacity .2s linear; transform:none; }
+  }
+
+  /* ===== SERVICES ===== */
+  .services{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    transition:grid-template-columns .85s cubic-bezier(.2,.85,.25,1);
+  }
+  @media (max-width:900px), (hover:none){
+    .services{ transition:grid-template-rows .72s cubic-bezier(.2,.85,.25,1); }
+  }
+  /* Accordion: the hovered column expands and its siblings give way.
+     Scoped to wide viewports with a real pointer. The :nth-child inside
+     :has() makes these selectors more specific than the plain .services
+     rules in the narrow-viewport media queries, and media queries add no
+     specificity of their own, so unscoped they kept winning on phones:
+     one tap re-flowed the stacked cards into four columns and the section
+     collapsed by about a thousand pixels. */
+  @media (min-width:901px) and (hover:hover) and (pointer:fine){
+    .services:has(.service:nth-child(1):is(:hover,:focus-visible)){ grid-template-columns:1.48fr .84fr .84fr .84fr; }
+    .services:has(.service:nth-child(2):is(:hover,:focus-visible)){ grid-template-columns:.84fr 1.48fr .84fr .84fr; }
+    .services:has(.service:nth-child(3):is(:hover,:focus-visible)){ grid-template-columns:.84fr .84fr 1.48fr .84fr; }
+    .services:has(.service:nth-child(4):is(:hover,:focus-visible)){ grid-template-columns:.84fr .84fr .84fr 1.48fr; }
+  }
+
+  .service{
+    position:relative;
+    min-height:560px;
+    padding:36px 24px;
+    display:flex; flex-direction:column; justify-content:space-between;
+    color:#0a0a0c;
+    overflow:hidden;
+    isolation:isolate;
+    cursor:pointer;
+    outline:none;
+    --glow:rgba(255,255,255,.35);
+    transition:filter .6s ease;
+  }
+  .service + .service{ box-shadow:inset 1px 0 0 rgba(10,10,12,.16); }
+
+  /* siblings recede when one card is active */
+  .services:has(.service:is(:hover,:focus-visible)) .service:not(:hover):not(:focus-visible){
+    filter:saturate(.35) brightness(.62);
+  }
+
+  /* layer 1 — cursor-tracking spotlight */
+  .service::before{
+    content:"";
+    position:absolute; inset:0; z-index:0; pointer-events:none;
+    background:radial-gradient(circle 340px at var(--mx,50%) var(--my,50%), var(--glow), transparent 68%);
+    mix-blend-mode:screen;
+    opacity:0; transition:opacity .45s ease;
+  }
+  .service:is(:hover,:focus-visible)::before{ opacity:1; }
+
+  /* layer 2 — one-shot sheen sweep */
+  .service .sheen{
+    position:absolute; top:-20%; bottom:-20%; left:0; width:40%; z-index:1;
+    background:linear-gradient(100deg, transparent, rgba(255,255,255,.20), transparent);
+    transform:translateX(-170%) skewX(-14deg);
+    opacity:0; pointer-events:none;
+  }
+  .service:is(:hover,:focus-visible) .sheen{ animation:sheen 1s cubic-bezier(.3,.7,.3,1) forwards; }
+  @keyframes sheen{
+    0%{ opacity:0; transform:translateX(-170%) skewX(-14deg); }
+    18%{ opacity:1; }
+    100%{ opacity:0; transform:translateX(370%) skewX(-14deg); }
+  }
+
+  /* layer 3 — top edge draws in */
+  .service .edge{
+    position:absolute; top:0; left:0; right:0; height:3px; z-index:3;
+    background:currentColor;
+    transform:scaleX(0); transform-origin:left;
+    transition:transform .7s cubic-bezier(.2,.85,.25,1);
+  }
+  .service:is(:hover,:focus-visible) .edge{ transform:scaleX(1); }
+
+  /* top row — dash grows, index number drops in */
+  .s-top{ position:relative; z-index:2; display:flex; justify-content:space-between; align-items:flex-start; }
+  .service .dash{ width:22px; height:3px; background:currentColor; transition:width .6s cubic-bezier(.2,.85,.25,1); }
+  .service:is(:hover,:focus-visible) .dash{ width:64px; }
+  .s-num{
+    font-family:'Anton'; font-size:34px; line-height:1;
+    color:transparent; -webkit-text-stroke:1px currentColor;
+    opacity:0; transform:translateY(-16px);
+    transition:opacity .5s ease .04s, transform .6s cubic-bezier(.2,.85,.25,1) .04s;
+  }
+  .service:is(:hover,:focus-visible) .s-num{ opacity:.8; transform:translateY(0); }
+
+  /* title — rotates from vertical to horizontal */
+  .service h3{
+    position:relative; z-index:2;
+    font-family:'Anton'; font-size:clamp(26px,2.8vw,38px);
+    align-self:center; letter-spacing:.02em; white-space:nowrap;
+  }
+  .service h3 span{
+    display:inline-block;
+    transform:rotate(90deg);
+    transition:transform .8s cubic-bezier(.2,.85,.25,1);
+  }
+  .service:is(:hover,:focus-visible) h3 span{ transform:rotate(0deg) scale(1.14); }
+
+  /* body — list staggers up, cta slides in */
+  .s-body{ position:relative; z-index:2; }
+  .service ul{ list-style:none; font-size:12.5px; line-height:1.85; font-weight:600; }
+  .service ul li{ opacity:.72; transition:opacity .5s ease; }
+  .service:is(:hover,:focus-visible) ul li{
+    opacity:1;
+    animation:riseIn .6s cubic-bezier(.2,.85,.25,1) backwards;
+  }
+  .service:is(:hover,:focus-visible) ul li:nth-child(1){ animation-delay:.08s; }
+  .service:is(:hover,:focus-visible) ul li:nth-child(2){ animation-delay:.16s; }
+  .service:is(:hover,:focus-visible) ul li:nth-child(3){ animation-delay:.24s; }
+  @keyframes riseIn{ from{ opacity:0; transform:translateY(18px); } to{ opacity:1; transform:translateY(0); } }
+
+  .s-cta{
+    display:flex; align-items:center; gap:10px;
+    margin-top:20px; font-size:10.5px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.14em;
+    opacity:0; transform:translateX(-16px);
+    transition:opacity .5s ease .2s, transform .6s cubic-bezier(.2,.85,.25,1) .2s;
+  }
+  .service:is(:hover,:focus-visible) .s-cta{ opacity:1; transform:translateX(0); }
+  .s-cta .line{ width:0; height:1px; background:currentColor; transition:width .7s cubic-bezier(.2,.85,.25,1) .24s; }
+  .service:is(:hover,:focus-visible) .s-cta .line{ width:48px; }
+
+  .s1{ background:linear-gradient(160deg,#e4ff5c,#8fe000); --glow:rgba(255,255,255,.30); }
+  .s2{ background:linear-gradient(150deg,#050506 30%,#5c1030 100%); color:var(--white); --glow:rgba(255,47,157,.45); }
+  .s2 h3{ color:var(--pink); }
+  .s3{ background:linear-gradient(160deg,#c13ce8,#ff2f9d); color:var(--white); --glow:rgba(255,255,255,.30); }
+  .s4{ background:linear-gradient(160deg,#100a26,#4b6bff); color:var(--white); --glow:rgba(75,107,255,.55); }
+
+  /* ===== CTA / CONTACT ===== */
+  .cta{
+    position:relative;
+    padding:min(5vw,62px) 5vw 0;
+    background:linear-gradient(180deg, #060608 0%, #060608 25%, #1c1233 60%, #3a2470 100%);
+    overflow:hidden;
+  }
+  .cta-title{
+    position:relative; z-index:1;
+    /* Set in the text face rather than a display cut, at regular weight.
+       The embedded Archivo carries only a width axis (no wght), so it is
+       locked at 900 and cannot be lightened; Space Grotesk is the one
+       family here with a weight axis (300-700), and 700 is the top of
+       that axis. */
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    letter-spacing:0;
+    line-height:.80;
+    font-size:clamp(38px, 12vw, 190px);   /* fitCtaTitle() overrides this */
+    color:var(--white);
+  }
+  .cta-title span{
+    display:block;
+    position:relative;
+    white-space:nowrap;
+    padding-bottom:.041em;
+    margin-bottom:.148em;
+  }
+  .cta-title span:last-child{ margin-bottom:0; }
+  /* the hairline that closes each line in the comp */
+  .cta-title span::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; bottom:0;
+    height:.0126em;
+    min-height:1px;
+    background:var(--white);
+  }
+
+  .contact-card{
+    position:relative; z-index:2;
+    margin:-9vw 0 0 auto;
+    /* Slid in from the right gutter so the card's trailing edge falls
+       through the middle of the G in SOMETHING. 5.75vw is that point at
+       every width; the min() stops the shift from pushing the card past
+       the left gutter on smaller screens. */
+    margin-right:max(0px, min(5.75vw, calc(100% - 900px)));
+    width:min(900px, 92%);
+    background:var(--lime);
+    color:#0a0a0c;
+    padding:46px clamp(20px,4vw,50px) 42px;
+  }
+  .contact-card h4{font-size:19px; margin-bottom:24px; font-weight:600;}
+  .form-grid{ display:grid; grid-template-columns:1fr 1.4fr; gap:0 44px; }
+  .field{border-bottom:1.5px solid #0a0a0c; padding-bottom:7px; margin-bottom:22px;}
+  .field label{display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px; opacity:0.65;}
+  .field input, .field textarea{
+    width:100%; border:none; background:transparent; font-family:inherit;
+    font-size:14px; color:#0a0a0c; outline:none; resize:none;
+  }
+  .field textarea{height:38px;}
+  .field ::placeholder{ color:rgba(10,10,12,.42); }
+  .field input::placeholder{ color:rgba(10,10,12,.42); }
+  /* the message box runs the full width of its column instead of sharing
+     the row with the button, so there is room to actually write */
+  .field.msg{ margin-bottom:16px; }
+  .field.msg textarea{
+    height:auto; min-height:172px;
+    line-height:1.62; resize:vertical;
+  }
+  .field.msg textarea::placeholder{ line-height:1.62; }
+  .msg-foot{ display:flex; justify-content:space-between; align-items:flex-start; gap:24px; }
+  .send-btn{
+    background:#0a0a0c; color:var(--lime); border:none; padding:11px 22px;
+    font-family:'Space Grotesk'; font-weight:600; font-size:13px; letter-spacing:0.04em;
+    display:inline-flex; align-items:center; gap:8px; cursor:pointer; white-space:nowrap;
+    transition:transform 0.2s ease; margin-top:2px; align-self:flex-end;
+  }
+  .send-btn:hover{transform:translateY(-2px);}
+  .fine-print{font-size:8.5px; line-height:1.5; color:rgba(10,10,12,0.6); max-width:230px; margin-top:4px;}
+  .bottom-row{ display:flex; justify-content:space-between; align-items:flex-start; margin-top:4px; gap:20px; flex-wrap:wrap; }
+  .consent{display:flex; align-items:flex-start; gap:8px; font-size:9.5px; max-width:220px; line-height:1.5; color:rgba(10,10,12,0.75);}
+  .consent input{margin-top:2px;}
+
+  footer{
+    background:var(--lime); color:#0a0a0c;
+    padding:38px 5vw 26px;
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:20px;
+  }
+  footer .fnote{font-size:10px; text-transform:uppercase; letter-spacing:0.08em; opacity:0.7;}
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width:900px){
+    /* the menu stays on show; it just tightens up and the links get a
+       proper vertical tap area instead of the bare 14px text box */
+    header{ padding:12px 5vw; }
+    .logo{ font-size:15px; }
+    nav ul{ gap:20px; }
+    nav a{ display:block; padding:15px 0; font-size:11px; letter-spacing:.07em; }
+    #work, #services, #contact{ scroll-margin-top:78px; }
+    /* Touch sizing for the form. 16px is the threshold below which iOS
+       Safari zooms the page in when a field takes focus, and the fields
+       were only ~18px tall, well under a comfortable tap target. */
+    .field input, .field textarea{ font-size:16px; }
+    .field input{ min-height:30px; }
+    .field{ padding-bottom:10px; margin-bottom:24px; }
+    .field label{ font-size:11px; }
+    .send-btn{ min-height:46px; padding:0 26px; }
+    .consent{ min-height:44px; align-items:center; }
+    .consent input{ width:20px; height:20px; }
+    .services,
+    .services:has(.service:is(:hover,:focus-visible)){ grid-template-columns:1fr 1fr; }
+    .service{min-height:340px;}
+    .form-grid{grid-template-columns:1fr;}
+    .msg-foot{flex-direction:column; gap:16px;}
+    .send-btn{align-self:flex-start;}
+    /* Once the card drops below the headline it is no longer offset
+       against it, so it centres in the column instead of sitting flush
+       left with the 8% width slack all piled up on the right. */
+    .contact-card{margin-left:auto; margin-right:auto;}
+  }
+  @media (max-width:420px){
+    .logo{ font-size:13.5px; letter-spacing:.03em; }
+    nav ul{ gap:13px; }
+    nav a{ font-size:10px; letter-spacing:.03em; }
+  }
+  @media (max-width:560px){
+    .services,
+    .services:has(.service:is(:hover,:focus-visible)){ grid-template-columns:1fr; }
+
+    /* Vertical version of the desktop accordion. The section height is
+       fixed and the four rows share it, so opening one card shrinks the
+       others instead of pushing the page around — the same trade the
+       columns make on a wide screen. */
+    .services{
+      height:clamp(430px, 132vw, 560px);
+      grid-template-rows:repeat(4, 1fr);
+    }
+    .service{ min-height:0; padding:20px 22px; }
+    .services:has(.service:nth-child(1).is-open){ grid-template-rows:2.05fr .65fr .65fr .65fr; }
+    .services:has(.service:nth-child(2).is-open){ grid-template-rows:.65fr 2.05fr .65fr .65fr; }
+    .services:has(.service:nth-child(3).is-open){ grid-template-rows:.65fr .65fr 2.05fr .65fr; }
+    .services:has(.service:nth-child(4).is-open){ grid-template-rows:.65fr .65fr .65fr 2.05fr; }
+
+    /* A collapsed row is a title bar. Stacking the 34px index above the
+       title needs ~120px of content in a 70px row, so on a shut card the
+       index and the body are lifted out of the flex flow: the index pins
+       to the right of the bar and the body waits below the fold. */
+    .service h3{ align-self:flex-start; font-size:25px; line-height:1.05; }
+    .service h3 span{ transform:none; }
+    .service .s-body{
+      transition:opacity .38s ease, transform .5s cubic-bezier(.2,.85,.25,1);
+    }
+    .service:not(.is-open){ justify-content:center; padding:14px 22px; }
+    .service:not(.is-open) .s-top{
+      position:absolute; top:50%; right:22px; transform:translateY(-50%);
+      z-index:3;
+    }
+    .service:not(.is-open) .s-num{ opacity:.5; }
+    .service:not(.is-open) .s-body{
+      position:absolute; left:22px; right:22px; bottom:16px;
+      opacity:0; transform:translateY(12px); pointer-events:none;
+    }
+    .service.is-open{ justify-content:space-between; }
+    .service.is-open .s-body{ opacity:1; transform:none; }
+    .hero-tag.left, .hero-tag.right{display:none;}
+    .peek-section{height:380px;}
+    .statement-copy{ --stmt-bleed:150px; }
+    /* the example text wraps to more lines on a narrow column */
+    .field.msg textarea{ min-height:284px; }
+    .peek-section{
+      width:calc(100% + 10vw);
+      margin:70px -5vw -110px;
+    }
+    .peek-animal-window{
+      bottom:64px;
+      width:min(205px,52vw);
+      height:290px;
+    }
+    .peek-rabbit-window{left:30%;}
+    .peek-lynx-window{left:70%;}
+    .peek-wall{height:104px;}
+    .peek-wall-note{display:none;}
+    .statement-body{flex-direction:column;}
+    .statement-body .right-p{text-align:left; align-self:flex-start;}
+    .statement-type{
+      padding-top:18px;
+      padding-bottom:34px;
+    }
+    .statement-kicker{
+      margin-bottom:30px;
+    }
+    .statement-kicker .statement-system{
+      display:none;
+    }
+    /* 7px micro-labels are below the legibility floor on a handset */
+    .statement-index{ font-size:9px; }
+
+    /* The sub-head is a flex row: label, hairline, label. With no room to
+       sit side by side the two labels were squeezed into narrow columns
+       and each wrapped internally, so the hairline ended up buried in the
+       middle of four ragged lines. Stack them and let the rule span. */
+    /* Selectors must match the base rules' depth (.hero-sub .rule-row):
+       a media query adds no specificity, so the shorter versions lost and
+       align-items stayed centred, which indented both labels and the rule.
+       flex:none stops the hairline stretching now the axis is vertical. */
+    .hero-sub .rule-row{ flex-direction:column; align-items:flex-start; gap:7px; }
+    .hero-sub .rule-row .dots{ flex:none; width:100%; max-width:none; }
+    .hero-sub{ font-size:11px; letter-spacing:.03em; }
+
+    .hero-meta{ gap:13px; }
+    /* the hashtag row is one unbroken string once the nbsp separators are
+       counted, so it either fits or breaks mid-phrase; scale it to fit */
+    .hero-meta .left{ font-size:clamp(9.6px, 3.05vw, 11px); letter-spacing:.03em; }
+    /* right-aligning a four-line block against a left-aligned one above it
+       just reads as two competing edges once they stack */
+    .hero-meta .right{ font-size:10px; text-align:left; line-height:1.7; }
+  }
+
+  /* touch devices: show the card details without requiring hover */
+  @media (hover:none){
+    .service .s-num{ opacity:.55; transform:none; }
+    .service .s-cta{ opacity:1; transform:none; }
+    .service .s-cta .line{ width:48px; }
+    .service ul li{ opacity:1; }
+    /* also covers focus-visible: a tap focuses the card, which otherwise
+       left the other three cards greyed out with no way to undo it */
+    .services:has(.service:is(:hover,:focus-visible)) .service:not(:hover):not(:focus-visible){ filter:none; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .services, .service, .service *{
+      transition-duration:.01ms !important;
+      animation:none !important;
+    }
+  }
+
+  /* ===== MOTION SYSTEM =====================================
+     One reveal vocabulary shared by every section, so the page
+     reads as a single choreography instead of isolated tricks. */
+  /* Hidden states are gated behind .motion, which is only set by an
+     inline script. If scripting is blocked or errors, every element
+     simply renders visible instead of staying masked out. */
+  [data-reveal]{
+    transition:opacity 1s cubic-bezier(.16,.84,.24,1) var(--d,0s),
+               transform 1s cubic-bezier(.16,.84,.24,1) var(--d,0s);
+  }
+  .motion [data-reveal]:not(.is-in){
+    opacity:0;
+    transform:translateY(32px);
+  }
+  [data-reveal="mask"]{
+    transition:clip-path 1.15s cubic-bezier(.16,.84,.24,1) var(--d,0s);
+  }
+  .motion [data-reveal="mask"]:not(.is-in){
+    opacity:1;
+    transform:none;
+    clip-path:inset(-0.16em 100% -0.30em 0);
+  }
+  .motion [data-reveal="mask"].is-in{
+    clip-path:inset(-0.16em 0 -0.30em 0);
+  }
+
+  /* word-by-word illumination, driven by scroll position */
+  .sweep .w{
+    opacity:.42;
+    transition:opacity .55s cubic-bezier(.2,.85,.25,1);
+  }
+  .sweep .w.lit{ opacity:1; }
+
+  /* ===== KINETIC HERO TITLE ===== */
+  /* line-height is .86, so Anton's caps sit above the line box. The bottom
+     overhang already had padding; without the matching top pad the entrance
+     mask's overflow:hidden sliced ~.035em off the tops of the letters until
+     .settled landed. The negative margin keeps the layout where it was. */
+  .hero-title .hl{
+    display:block; overflow:hidden;
+    padding-top:.07em; margin-top:-.07em;
+    padding-bottom:.055em;
+  }
+  /* entrance mask done -> stop clipping so the drift stays readable */
+  .hero-title.settled .hl{ overflow:visible; }
+  .hero-title .hl-in{
+    display:inline-block;
+    transition:transform 1.3s cubic-bezier(.16,.84,.24,1) var(--d,0s);
+  }
+  .motion .hero-title:not(.is-in) .hl-in{ transform:translateY(115%); }
+  /* the two lines pull apart on opposite axes as you scroll — the brand name, literalised */
+  .hero-title .hl-x{ display:inline-block; will-change:transform; }
+
+  /* ===== HERO CROSSHAIR ===== */
+  .axis-guides{
+    position:absolute; inset:0; z-index:2;
+    pointer-events:none; opacity:0;
+    transition:opacity .45s ease;
+  }
+  .axis-guides.on{ opacity:.55; }
+  .axis-guides i{ position:absolute; display:block; }
+  .axis-guides .gx{
+    left:0; right:0; height:1px; top:0;
+    background:linear-gradient(90deg,transparent,var(--pink) 22%,var(--pink) 78%,transparent);
+  }
+  .axis-guides .gy{
+    top:0; bottom:0; width:1px; left:0;
+    background:linear-gradient(180deg,transparent,var(--lime) 22%,var(--lime) 78%,transparent);
+  }
+  .axis-readout{
+    position:absolute; z-index:4;
+    padding:3px 7px;
+    transform:translate(14px,14px);
+    background:rgba(10,10,12,.72);
+    border:1px solid rgba(215,255,58,.4);
+    color:var(--lime);
+    font-size:8px; letter-spacing:.12em;
+    font-variant-numeric:tabular-nums;
+    white-space:nowrap;
+  }
+  .hero-frame{
+    position:absolute; left:5vw; top:92px; z-index:4;
+    display:flex; align-items:center; gap:12px;
+    font-size:9px; letter-spacing:.14em; text-transform:uppercase;
+    color:rgba(244,244,242,.42);
+  }
+  .hero-frame .rail{ position:relative; width:96px; height:1px; background:var(--line); }
+  .hero-frame .fill{
+    position:absolute; left:0; top:0; bottom:0; width:0;
+    background:var(--lime); box-shadow:0 0 9px rgba(215,255,58,.75);
+  }
+  .hero-frame b{ font-weight:600; color:var(--lime); font-variant-numeric:tabular-nums; }
+
+  /* ===== VELOCITY TICKER ===== */
+  .ticker{
+    position:relative; overflow:hidden;
+    padding:10px 0;
+    background:var(--lime); color:#0a0a0c;
+    border-top:1px solid rgba(10,10,12,.18);
+    border-bottom:1px solid rgba(10,10,12,.18);
+  }
+  .ticker-track{ display:flex; width:max-content; will-change:transform; }
+  .ticker-track span{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    text-transform:uppercase;
+    font-size:clamp(16px,2vw,28px);
+    letter-spacing:.09em;
+    padding-right:.52em;
+    white-space:nowrap;
+    line-height:1;
+  }
+  .ticker-track .sep{ color:var(--pink); }
+
+  /* ===== MAGNETIC ELEMENTS ===== */
+  [data-magnetic]{
+    display:inline-block;
+    will-change:transform;
+    transition:transform .55s cubic-bezier(.2,.85,.25,1);
+  }
+  [data-magnetic].pulling{ transition:transform .1s linear; }
+
+  /* ===== CHROME ===== */
+  .scroll-progress{
+    position:fixed; top:0; left:0; z-index:60;
+    height:2px; width:100%;
+    transform:scaleX(0); transform-origin:left;
+    background:linear-gradient(90deg,var(--lime),var(--pink));
+    pointer-events:none;
+  }
+  header{ transition:transform .55s cubic-bezier(.2,.85,.25,1); }
+  header.tuck{ transform:translateY(-130%); }
+
+  @media (max-width:560px){
+    .hero-frame{ display:none; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    [data-reveal], [data-reveal="mask"], .hero-title .hl-in, [data-magnetic]{
+      opacity:1 !important; transform:none !important;
+      clip-path:none !important; transition:none !important;
+    }
+    .sweep .w{ opacity:1 !important; }
+    .axis-guides{ display:none; }
+  }
+</style>
+<script>document.documentElement.classList.add("motion");</script>
+</head>
+<body>
+
+<div class="scroll-progress" aria-hidden="true"></div>
+<div class="cursor-aura" aria-hidden="true"></div>
+<div class="cursor-ring" aria-hidden="true"><span class="cursor-label"></span></div>
+<div class="cursor-core" aria-hidden="true"></div>
+
+<header>
+  <div class="logo">Double Axis</div>
+  <nav>
+    <ul>
+      <li><a href="#work" data-magnetic="14">Work</a></li>
+      <li><a href="#services" data-magnetic="14">Services</a></li>
+      <li><a href="#contact" data-magnetic="14">Contact</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-sticky">
+  <div class="hero-media" aria-hidden="true">
+    <video class="hero-video" muted playsinline preload="auto" disablepictureinpicture
+           poster="assets/img/hero-poster.jpg"></video>
+  </div>
+
+  <div class="axis-guides" aria-hidden="true">
+    <i class="gx"></i><i class="gy"></i>
+    <div class="axis-readout">X 0.00 &nbsp; Y 0.00</div>
+  </div>
+
+  <div class="hero-frame" aria-hidden="true">
+    <span>Frame</span>
+    <span class="rail"><span class="fill"></span></span>
+    <b>&mdash;</b>
+  </div>
+
+  <div class="hero-tag left"><span class="plus">+</span> WILD EYES &nbsp;//&nbsp; GENTLE MOOD</div>
+  <div class="hero-tag left-bottom">+</div>
+  <div class="hero-tag right">
+    <span>// VISUAL ARTIST</span>
+    <span class="rule"></span>
+    <span>TECHNICAL DESIGNER</span>
+  </div>
+
+  <h1 class="hero-title display">
+    <span class="hl"><span class="hl-in"><span class="hl-x" data-axis="-1">DOUBLE</span></span></span>
+    <span class="hl"><span class="hl-in" style="--d:.12s"><span class="hl-x axis-line" data-axis="1">AXIS</span></span></span>
+  </h1>
+
+  <div class="hero-sub">
+    <p>&gt; FEATURE AXIS A: INVERSION DYNAMICS</p>
+    <p class="rule-row">&gt; FEATURE AXIS B: BINOCULAR PERSPECTIVE <span class="dots"></span> CREATIVE DIRECTION</p>
+  </div>
+
+  <div class="hero-meta">
+    <div class="left"># TINY VISITORS &nbsp;/&nbsp; # CURIOUS EYES &nbsp;/&nbsp; # LOOK CLOSER</div>
+    <div class="right">
+      *THIS PROMOTIONAL VISUAL IS FOR CREATIVE REPRESENTATION. ALL RIGHTS RESERVED.<br>
+      'DOUBLE AXIS' VERSION 1.0 // OPTIMIZED FOR 1920 X 1080
+    </div>
+  </div>
+  </div>
+</section>
+
+<!-- STATEMENT -->
+<section class="statement" id="work">
+  <div class="statement-copy">
+  <div class="statement-type">
+    <div class="statement-kicker" data-reveal>
+      <span class="statement-index">Statement / 001</span>
+      <span class="statement-system">Double Axis — Creative Direction System</span>
+    </div>
+    <h2 class="display">
+      <span data-reveal="mask">Curiosity, shaped</span>
+      <span data-reveal="mask" style="--d:.13s">by direction</span>
+      <span data-reveal="mask" style="--d:.26s"><span class="accent-pink">Realized</span> with <span class="accent-lime">precision</span></span>
+    </h2>
+  </div>
+  <div class="statement-body">
+    <p class="sweep">Design should evoke atmosphere before explanation. We create refined digital and visual experiences that speak through proportion, typography, motion, and silence — allowing brands to express themselves with authenticity and depth.</p>
+    <p class="right-p sweep">Our approach combines creative direction with minimal sophistication, transforming abstract ideas into immersive visual experiences. The outcome is design that feels calm, distinctive, and quietly powerful.</p>
+  </div>
+  </div>
+
+
+  <!-- CURIOUS VISITORS -->
+  <section class="peek-section" aria-label="A curious rabbit and lynx peeking over a wall">
+    <div class="peek-label">Tiny visitors detected</div>
+    <div class="peek-animal-window peek-rabbit-window">
+      <img class="peek-animal peek-rabbit" src="assets/img/peek-rabbit.png" alt="Hand-drawn rabbit resting its paws on a wall">
+    </div>
+    <div class="peek-animal-window peek-lynx-window">
+      <img class="peek-animal peek-lynx" src="assets/img/peek-lynx.png" alt="Hand-drawn lynx resting its paws on a wall">
+    </div>
+    <div class="peek-wall">
+      <span class="peek-wall-note">Scroll activated visitors / 002 + 003</span>
+    </div>
+  </section>
+</section>
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track"></div>
+</div>
+
+<!-- SERVICES -->
+<section class="services" id="services">
+  <article class="service s1" tabindex="0" data-reveal style="--d:0.00s">
+    <span class="edge"></span>
+    <span class="sheen"></span>
+    <div class="s-top">
+      <div class="dash"></div>
+      <span class="s-num">01</span>
+    </div>
+    <h3><span>Modeling</span></h3>
+    <div class="s-body">
+      <ul>
+        <li>+ Product</li>
+        <li>+ Character</li>
+        <li>+ Other 3D Asset</li>
+      </ul>
+      <div class="s-cta"><span class="line"></span>View</div>
+    </div>
+  </article>
+  <article class="service s2" tabindex="0" data-reveal style="--d:0.09s">
+    <span class="edge"></span>
+    <span class="sheen"></span>
+    <div class="s-top">
+      <div class="dash"></div>
+      <span class="s-num">02</span>
+    </div>
+    <h3><span>Animation</span></h3>
+    <div class="s-body">
+      <ul>
+        <li>+ For the</li>
+        <li>3D Contests</li>
+      </ul>
+      <div class="s-cta"><span class="line"></span>View</div>
+    </div>
+  </article>
+  <article class="service s3" tabindex="0" data-reveal style="--d:0.18s">
+    <span class="edge"></span>
+    <span class="sheen"></span>
+    <div class="s-top">
+      <div class="dash"></div>
+      <span class="s-num">03</span>
+    </div>
+    <h3><span>Branding</span></h3>
+    <div class="s-body">
+      <ul>
+        <li>+ 3D Motion Design</li>
+        <li>for Branding</li>
+      </ul>
+      <div class="s-cta"><span class="line"></span>View</div>
+    </div>
+  </article>
+  <article class="service s4" tabindex="0" data-reveal style="--d:0.27s">
+    <span class="edge"></span>
+    <span class="sheen"></span>
+    <div class="s-top">
+      <div class="dash"></div>
+      <span class="s-num">04</span>
+    </div>
+    <h3><span>Rendering</span></h3>
+    <div class="s-body">
+      <ul>
+        <li>+ Visualization</li>
+        <li>for the 3D Artworks</li>
+      </ul>
+      <div class="s-cta"><span class="line"></span>View</div>
+    </div>
+  </article>
+</section>
+
+<!-- CTA / CONTACT -->
+<section class="cta" id="contact">
+  <h1 class="cta-title display">
+    <span data-reveal="mask">Let's Start</span>
+    <span data-reveal="mask" style="--d:.14s">Something</span>
+  </h1>
+
+  <div class="contact-card" data-reveal>
+    <h4>Reach us</h4>
+    <!-- Netlify picks the form up from the deployed HTML at build time, so the
+         name, the data-netlify flag and the matching hidden form-name field all
+         have to be present in the markup as shipped. -->
+    <form class="contact-form"
+          name="contact"
+          method="POST"
+          action="/"
+          data-netlify="true"
+          netlify-honeypot="company-website"
+          novalidate>
+      <input type="hidden" name="form-name" value="contact">
+      <p class="hp-field" aria-hidden="true">
+        <label>Leave this empty <input name="company-website" tabindex="-1" autocomplete="off"></label>
+      </p>
+    <div class="form-grid">
+      <div>
+        <div class="field">
+          <label for="f-name">Name</label>
+          <input id="f-name" name="name" type="text" required autocomplete="name" placeholder="">
+          <span class="field-error">Please enter your name.</span>
+        </div>
+        <div class="field">
+          <label for="f-email">Email</label>
+          <input id="f-email" name="email" type="email" required autocomplete="email" placeholder="">
+          <span class="field-error">Please enter a valid email address.</span>
+        </div>
+        <div class="field">
+          <label for="f-budget">Budget</label>
+          <input id="f-budget" name="budget" type="text" autocomplete="off" placeholder="e.g. $15,000 – $20,000">
+        </div>
+        <label class="consent">
+          <input id="f-consent" name="consent" type="checkbox" value="yes" required>
+          I agree to the collection and use of my email address.
+        </label>
+      </div>
+      <div>
+        <div class="field msg">
+          <label for="f-msg">Type your message here</label>
+          <textarea id="f-msg" name="message" rows="6" required placeholder="A few lines are plenty — what it's for, roughly what you'd like to spend, and when you need it by.&#10;&#10;e.g. We're launching a skincare label in the autumn and need a brand identity plus a one-page site. Budget is somewhere around $15–20k, and we'd like to be live by the end of Q2. Happy to send over the deck."></textarea>
+          <span class="field-error">Please tell us a little about the project.</span>
+        </div>
+        <div class="msg-foot">
+          <p class="fine-print">By submitting your email address, you consent to the collection and use of your personal information for marketing and communication purposes in accordance with our Privacy Policy. You may withdraw your consent at any time.</p>
+          <button class="send-btn" type="submit">Send &rarr;</button>
+        </div>
+        <p class="form-status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+    </form>
+  </div>
+</section>
+
+<footer>
+  <div class="logo">Double Axis</div>
+  <div class="fnote">© 2026 Double Axis Studio — All rights reserved</div>
+</footer>
+
+<button class="to-top" type="button" aria-label="Back to top">
+  <span class="to-top-arrow" aria-hidden="true">&#8593;</span>
+  <span>Top</span>
+</button>
+
+
+
+<script>
+  (() => {
+    const hero      = document.querySelector(".hero");
+    const video     = document.querySelector(".hero-video");
+    if (!hero || !video) return;
+
+    const drifters  = document.querySelectorAll(".hero-title .hl-x");
+    const title     = document.querySelector(".hero-title");
+    const hudFill   = document.querySelector(".hero-frame .fill");
+    const hudRead   = document.querySelector(".hero-frame b");
+    const reduce    = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const FPS       = 24;              /* source frame rate */
+    let totalFrames = 0;               /* derived from duration, not hardcoded */
+
+    /* The footage is a separate file so the page can paint before it
+       arrives. Scroll scrubbing seeks freely through the clip, so it has
+       to be fully buffered rather than streamed on demand. */
+    video.src = "assets/video/hero.mp4";
+    video.load();
+
+    video.pause();
+    video.removeAttribute("autoplay");
+    video.addEventListener("play", () => video.pause());
+
+    let duration = 0, target = 0, current = 0, running = false;
+
+    const progress = () => {
+      const range = Math.max(hero.offsetHeight - window.innerHeight, 1);
+      const top   = hero.getBoundingClientRect().top + window.scrollY;
+      return Math.min(Math.max((window.scrollY - top) / range, 0), 1);
+    };
+
+    /* currentTime is frame-exact. fastSeek() would snap to the nearest
+       keyframe, and the whole point here is a precise scroll-to-time mapping.
+       paint() runs every animation frame, so without a guard we would fire a
+       new seek while the previous one is still decoding; those requests pile
+       up and the picture lurches. Instead, keep only the newest target and
+       issue it once the decoder reports back. */
+    let pendingSeek = null;
+    const seek = (t) => {
+      if (video.readyState < 1) return;
+      if (video.seeking) { pendingSeek = t; return; }
+      video.currentTime = t;
+    };
+    video.addEventListener("seeked", () => {
+      if (pendingSeek === null) return;
+      const t = pendingSeek;
+      pendingSeek = null;
+      video.currentTime = t;
+    });
+
+    const paint = (p) => {
+      /* video: scrub + slow push-in */
+      if (duration > 0) {
+        const tailPad = Math.min(1 / FPS, duration * .01);
+        seek(p * (duration - tailPad));
+      }
+      video.style.setProperty("--hero-video-scale", (1.03 + p * .16).toFixed(4));
+
+      /* title: the two lines separate on opposing axes */
+      const px = p * 2.6;
+      drifters.forEach((el) => {
+        const dir = Number(el.dataset.axis) || 1;
+        el.style.transform = "translateX(" + (dir * px).toFixed(3) + "vw)";
+      });
+      /* HUD */
+      if (hudFill) hudFill.style.width = (p * 100).toFixed(2) + "%";
+      if (hudRead && totalFrames) {
+        const pad = String(totalFrames).length;
+        hudRead.textContent =
+          String(Math.round(p * totalFrames)).padStart(pad, "0") + " / " + totalFrames;
+      }
+    };
+
+    /* eased follow — a flicked wheel glides instead of snapping */
+    const loop = () => {
+      const diff = target - current;
+      if (Math.abs(diff) < .0004) {
+        current = target; running = false;
+        paint(current);
+        return;
+      }
+      current += diff * .14;
+      paint(current);
+      requestAnimationFrame(loop);
+    };
+
+    const onScroll = () => {
+      target = progress();
+      if (reduce.matches) { current = target; paint(current); return; }
+      if (!running) { running = true; requestAnimationFrame(loop); }
+    };
+
+    const prepare = () => {
+      duration = Number.isFinite(video.duration) ? video.duration : 0;
+      totalFrames = Math.max(1, Math.round(duration * FPS));
+      video.pause();
+      target = current = progress();
+      paint(current);
+    };
+
+    if (video.readyState >= 1) prepare();
+    else video.addEventListener("loadedmetadata", prepare, { once:true });
+    video.addEventListener("loadeddata", () => seek(progress() * duration), { once:true });
+    video.load();
+
+    window.addEventListener("scroll", onScroll, { passive:true });
+    window.addEventListener("resize", onScroll);
+    onScroll();
+
+    /* title entrance */
+    if (title) {
+      requestAnimationFrame(() => setTimeout(() => title.classList.add("is-in"), 90));
+      setTimeout(() => title.classList.add("settled"), 1700);
+    }
+
+    /* curious visitors */
+    const peekSection = document.querySelector(".peek-section");
+    if (peekSection) {
+      if ("IntersectionObserver" in window) {
+        new IntersectionObserver(([entry]) => {
+          peekSection.classList.toggle("is-visible", entry.isIntersecting);
+        }, { threshold:.28, rootMargin:"0px 0px -8% 0px" }).observe(peekSection);
+      } else {
+        peekSection.classList.add("is-visible");
+      }
+    }
+  })();
+
+  (() => {
+    const cards = document.querySelectorAll(".services .service");
+
+    cards.forEach((card) => {
+      card.addEventListener("pointermove", (event) => {
+        const bounds = card.getBoundingClientRect();
+        card.style.setProperty(
+          "--mx",
+          ((event.clientX - bounds.left) / bounds.width * 100) + "%"
+        );
+        card.style.setProperty(
+          "--my",
+          ((event.clientY - bounds.top) / bounds.height * 100) + "%"
+        );
+      });
+
+      card.addEventListener("pointerleave", () => {
+        card.style.setProperty("--mx", "50%");
+        card.style.setProperty("--my", "50%");
+      });
+    });
+  })();
+
+  (() => {
+    if (!window.matchMedia("(pointer:fine) and (hover:hover)").matches) return;
+
+    const core = document.querySelector(".cursor-core");
+    const ring = document.querySelector(".cursor-ring");
+    const aura = document.querySelector(".cursor-aura");
+    const label = document.querySelector(".cursor-label");
+    if (!core || !ring || !aura || !label) return;
+
+    document.body.classList.add("cursor-ready");
+
+    const mouse = { x:window.innerWidth / 2, y:window.innerHeight / 2 };
+    const ringPos = { ...mouse };
+    const auraPos = { ...mouse };
+    let lastMouse = { ...mouse };
+    let speed = 0;
+
+    const cursorState = (target) => {
+      const interactive = target.closest("a,button,.service,.peek-section");
+      let text = "";
+      let color = "#d7ff3a";
+
+      if (interactive?.classList.contains("service")) {
+        text = interactive.querySelector("h3")?.textContent?.trim() || "View";
+        if (interactive.classList.contains("s1")) color = "#101014";
+        if (interactive.classList.contains("s2")) color = "#ff2f9d";
+        if (interactive.classList.contains("s3")) color = "#d7ff3a";
+        if (interactive.classList.contains("s4")) color = "#d7ff3a";
+      } else if (interactive?.classList.contains("peek-section")) {
+        text = "Hello";
+        color = "#ff2f9d";
+      } else if (interactive?.tagName === "BUTTON") {
+        text = "Click";
+        color = "#d7ff3a";
+      } else if (interactive?.tagName === "A") {
+        text = "Go";
+        color = "#d7ff3a";
+      }
+
+      document.body.classList.toggle("cursor-over", Boolean(interactive));
+      document.body.style.setProperty("--cursor-accent", color);
+      label.textContent = text;
+    };
+
+    document.addEventListener("pointermove", (event) => {
+      mouse.x = event.clientX;
+      mouse.y = event.clientY;
+      document.body.classList.add("cursor-active");
+      document.body.classList.remove("cursor-hidden");
+      cursorState(event.target);
+      wake();
+    }, { passive:true });
+
+    document.addEventListener("pointerdown", () => {
+      document.body.classList.add("cursor-down");
+    });
+    document.addEventListener("pointerup", () => {
+      document.body.classList.remove("cursor-down");
+    });
+    document.documentElement.addEventListener("mouseleave", () => {
+      document.body.classList.add("cursor-hidden");
+      cursorRunning = false;          /* pointer left the window */
+    });
+    document.documentElement.addEventListener("mouseenter", () => {
+      document.body.classList.remove("cursor-hidden");
+      wake();
+    });
+
+    let cursorRunning = false;
+    const wake = () => {
+      if (cursorRunning) return;
+      cursorRunning = true;
+      requestAnimationFrame(renderCursor);
+    };
+
+    const renderCursor = () => {
+      const dx = mouse.x - lastMouse.x;
+      const dy = mouse.y - lastMouse.y;
+      const instantaneousSpeed = Math.hypot(dx, dy);
+      speed += (instantaneousSpeed - speed) * .22;
+      const angle = Math.atan2(dy, dx);
+      const stretch = Math.min(speed * .014, .46);
+
+      ringPos.x += (mouse.x - ringPos.x) * .19;
+      ringPos.y += (mouse.y - ringPos.y) * .19;
+      auraPos.x += (mouse.x - auraPos.x) * .075;
+      auraPos.y += (mouse.y - auraPos.y) * .075;
+
+      core.style.transform = `translate3d(${mouse.x}px,${mouse.y}px,0)`;
+      ring.style.transform =
+        `translate3d(${ringPos.x}px,${ringPos.y}px,0) rotate(${angle}rad) ` +
+        `scale(${(1 + stretch).toFixed(3)},${(1 - stretch * .42).toFixed(3)})`;
+      label.style.transform = `rotate(${-angle}rad)`;
+      aura.style.transform = `translate3d(${auraPos.x}px,${auraPos.y}px,0)`;
+
+      lastMouse = { ...mouse };
+
+      /* stand down once the trailing elements have caught up; any
+         pointer movement wakes the loop again */
+      const settled =
+        Math.abs(mouse.x - ringPos.x) < .05 && Math.abs(mouse.y - ringPos.y) < .05 &&
+        Math.abs(mouse.x - auraPos.x) < .05 && Math.abs(mouse.y - auraPos.y) < .05 &&
+        speed < .05;
+
+      if (settled) cursorRunning = false;
+      else requestAnimationFrame(renderCursor);
+    };
+
+    wake();
+  })();
+</script>
+
+
+
+<script>
+/* ===================== MOTION ENGINE ===================== */
+(() => {
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- 0a. pin the viewport unit ----------
+     Phones grow and shrink the reported viewport as the URL bar hides, so
+     a vh-based hero track changes length mid-scroll. Measure once and only
+     remeasure when the width actually changes (rotation or a real window
+     resize); a height-only change is the browser chrome and is ignored. */
+  (() => {
+    const root = document.documentElement;
+    const pin = () => root.style.setProperty("--vh-pin", window.innerHeight + "px");
+    let lastWidth = window.innerWidth;
+    pin();
+    window.addEventListener("resize", () => {
+      if (window.innerWidth === lastWidth) return;
+      lastWidth = window.innerWidth;
+      pin();
+    });
+    window.addEventListener("orientationchange", () => {
+      lastWidth = window.innerWidth;
+      setTimeout(pin, 120);
+    });
+  })();
+
+  /* ---------- 0. CTA headline set to the full measure ----------
+     In the comp both lines run edge to edge: the longest line fixes the
+     size and the shorter ones are tracked out until they reach the same
+     width. Glyph widths are identical between the lines, so this is
+     letter-spacing, not a horizontal scale. */
+  (() => {
+    const title = document.querySelector(".cta-title");
+    if (!title) return;
+    const lines = [...title.querySelectorAll("span")];
+    if (!lines.length) return;
+
+    const advance = (el) => {
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      return r.getBoundingClientRect().width;
+    };
+
+    const fit = () => {
+      const measure = title.clientWidth;
+      if (!measure) return;
+
+      lines.forEach((l) => { l.style.letterSpacing = "0px"; });
+      title.style.fontSize = "";
+      const base = parseFloat(getComputedStyle(title).fontSize);
+
+      let widest = 0;
+      lines.forEach((l) => { widest = Math.max(widest, advance(l)); });
+      if (!widest) return;
+      title.style.fontSize = (base * measure / widest).toFixed(3) + "px";
+
+      lines.forEach((l) => {
+        const slots = Math.max(l.textContent.trim().length - 1, 1);
+        const extra = (measure - advance(l)) / slots;
+        if (extra > 0.02) l.style.letterSpacing = extra.toFixed(3) + "px";
+      });
+    };
+
+    fit();
+    window.addEventListener("resize", fit);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  })();
+
+  /* ---------- 0b. back to top ---------- */
+  (() => {
+    const btn = document.querySelector(".to-top");
+    if (!btn) return;
+    const footer = document.querySelector("footer");
+
+    let shown = false;
+    let queued = false;
+
+    const update = () => {
+      queued = false;
+      /* clears the hero before appearing, so it never sits over the
+         opening frame */
+      /* step aside once the footer arrives rather than sitting on top of
+         the copyright line */
+      if (footer) {
+        const top = footer.getBoundingClientRect().top;
+        const lift = Math.max(0, window.innerHeight - top + 14);
+        btn.style.setProperty("--to-top-lift", lift + "px");
+      }
+
+      const past = window.scrollY > window.innerHeight * 0.9;
+      if (past === shown) return;
+      shown = past;
+      btn.classList.toggle("is-shown", shown);
+    };
+
+    window.addEventListener("scroll", () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(update);
+    }, { passive: true });
+
+    btn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+    });
+
+    update();
+  })();
+
+  /* ---------- 0c. services accordion on narrow screens ----------
+     The wide layout leans on :hover, which a phone has no equivalent for,
+     so the same expand/contract is driven by tap instead. One card open at
+     a time and the first open on arrival, so the section never reads as a
+     row of shut drawers. */
+  (() => {
+    const grid = document.querySelector(".services");
+    if (!grid) return;
+    const cards = [...grid.querySelectorAll(".service")];
+    if (!cards.length) return;
+
+    const narrow = window.matchMedia("(max-width:560px)");
+
+    const open = (card) => {
+      cards.forEach((c) => {
+        const on = c === card;
+        c.classList.toggle("is-open", on);
+        c.setAttribute("aria-expanded", on ? "true" : "false");
+      });
+    };
+
+    const sync = () => {
+      if (narrow.matches) {
+        if (!cards.some((c) => c.classList.contains("is-open"))) open(cards[0]);
+      } else {
+        cards.forEach((c) => {
+          c.classList.remove("is-open");
+          c.removeAttribute("aria-expanded");
+        });
+      }
+    };
+
+    cards.forEach((card) => {
+      const toggle = () => {
+        if (!narrow.matches) return;
+        /* keep one panel open rather than letting a second tap shut
+           everything and leave a gap */
+        if (!card.classList.contains("is-open")) open(card);
+      };
+      card.addEventListener("click", toggle);
+      card.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
+        toggle();
+      });
+    });
+
+    sync();
+    narrow.addEventListener("change", sync);
+  })();
+
+  /* ---------- 0d. contact form ----------
+     Netlify accepts a normal POST back to the page's own URL, so submitting
+     over fetch keeps the visitor on the page instead of bouncing them to a
+     plain success screen. If the request fails for any reason the form falls
+     back to a mailto: draft rather than losing what they typed. */
+  (() => {
+    const form = document.querySelector(".contact-form");
+    if (!form) return;
+
+    const status  = form.querySelector(".form-status");
+    const button  = form.querySelector(".send-btn");
+    const consent = form.querySelector("#f-consent");
+    const INBOX   = "doubleaxis.3d@gmail.com";
+
+    const wrap = (el) => el.closest(".field") || el.closest(".consent");
+
+    const mark = (el, bad) => {
+      const box = wrap(el);
+      if (box) box.classList.toggle("invalid", bad);
+    };
+
+    const say = (text, kind) => {
+      status.textContent = text;
+      status.classList.toggle("is-error", kind === "error");
+      status.classList.toggle("is-ok", kind === "ok");
+    };
+
+    /* clear a field's error as soon as it is put right */
+    form.querySelectorAll("input, textarea").forEach((el) => {
+      el.addEventListener("input", () => { if (el.checkValidity()) mark(el, false); });
+      el.addEventListener("change", () => { if (el.checkValidity()) mark(el, false); });
+    });
+
+    const validate = () => {
+      const fields = [...form.querySelectorAll("[required]")];
+      let first = null;
+      fields.forEach((el) => {
+        const ok = el.checkValidity();
+        mark(el, !ok);
+        if (!ok && !first) first = el;
+      });
+      if (first) {
+        say(first === consent
+          ? "Please agree to the collection and use of your email address."
+          : "Please fill in the highlighted fields.", "error");
+        first.focus({ preventScroll: false });
+      }
+      return !first;
+    };
+
+    /* if the POST cannot go through, hand them a pre-filled email instead */
+    const mailtoFallback = () => {
+      const get = (n) => (form.elements[n] && form.elements[n].value.trim()) || "";
+      const body = [
+        "Name: "   + get("name"),
+        "Email: "  + get("email"),
+        "Budget: " + (get("budget") || "—"),
+        "",
+        get("message")
+      ].join("\n");
+      return "mailto:" + INBOX +
+             "?subject=" + encodeURIComponent("Project enquiry — " + (get("name") || "Website")) +
+             "&body="    + encodeURIComponent(body);
+    };
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!validate()) return;
+
+      button.disabled = true;
+      const label = button.textContent;
+      button.textContent = "Sending…";
+      say("", null);
+
+      try {
+        const res = await fetch(form.getAttribute("action") || "/", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams(new FormData(form)).toString()
+        });
+        /* A 404 here means Netlify never registered the form. That only
+           happens at deploy time, so it points at the deploy rather than
+           at anything the visitor did. */
+        if (!res.ok) throw new Error("HTTP " + res.status);
+
+        form.classList.add("sent");
+        say("Thank you — your message is on its way. We usually reply within a couple of working days.", "ok");
+      } catch (err) {
+        button.disabled = false;
+        button.textContent = label;
+        console.error("Contact form failed:", err);
+        const link = mailtoFallback();
+        status.innerHTML =
+          'That did not send. Please try again, or ' +
+          '<a href="' + link + '" style="text-decoration:underline">email us directly</a>.';
+        status.classList.add("is-error");
+      }
+    });
+  })();
+
+  /* ---------- 1. reveal on enter ---------- */
+  const targets = [...document.querySelectorAll("[data-reveal]")];
+  const showAll = () => targets.forEach((el) => el.classList.add("is-in"));
+
+  if ("IntersectionObserver" in window && !reduce) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-in");
+        io.unobserve(entry.target);
+      });
+    }, { threshold:0, rootMargin:"0px 0px -6% 0px" });
+    targets.forEach((el) => io.observe(el));
+
+    /* Safety net: a geometry pass that only ever reveals elements which
+       have actually reached the fold. It runs at init and on every scroll,
+       so a missed observer callback self-corrects without a blanket timer
+       that would pre-trigger everything further down the page. */
+    var sweepCheck = () => {
+      const vh = window.innerHeight;
+      for (let i = targets.length - 1; i >= 0; i--) {
+        const el = targets[i];
+        const r = el.getBoundingClientRect();
+        if (r.top < vh * .94) {          /* at or above the fold only */
+          el.classList.add("is-in");
+          targets.splice(i, 1);
+        }
+      }
+    };
+    sweepCheck();
+  } else {
+    showAll();
+  }
+
+  /* ---------- 2. word-by-word illumination ---------- */
+  const sweeps = [...document.querySelectorAll(".sweep")].map((el) => {
+    el.innerHTML = el.textContent.trim().split(/\s+/)
+      .map((w) => '<span class="w">' + w + "</span>").join(" ");
+    return { el, words:el.querySelectorAll(".w") };
+  });
+
+  const lightWords = () => {
+    const vh = window.innerHeight;
+    sweeps.forEach(({ el, words }) => {
+      const r = el.getBoundingClientRect();
+      if (r.bottom < 0 || r.top > vh) return;
+      /* 0 when the block sits low in the viewport, 1 once it reaches the upper third */
+      const p = Math.min(Math.max((vh * .82 - r.top) / (vh * .46), 0), 1);
+      const lit = Math.round(p * words.length);
+      words.forEach((w, i) => w.classList.toggle("lit", i < lit));
+    });
+  };
+
+  /* ---------- 3. ticker that answers to scroll ---------- */
+  const track = document.querySelector(".ticker-track");
+  let wrapAt = 0, x = 0, vel = 0, dir = 1;
+  if (track) {
+    const words = ["Modeling", "Animation", "Branding", "Rendering"];
+    const unit = () => words.map((w) => "<span>" + w + '</span><span class="sep">/</span>').join("");
+    track.innerHTML = unit();
+    let guard = 0;
+    while (track.scrollWidth < window.innerWidth * 1.3 && guard++ < 20) track.innerHTML += unit();
+    track.innerHTML = track.innerHTML + track.innerHTML;
+    wrapAt = track.scrollWidth / 2;
+  }
+
+  /* ---------- 4. chrome: progress bar + self-hiding header ---------- */
+  const bar = document.querySelector(".scroll-progress");
+  const head = document.querySelector("header");
+  let lastY = window.scrollY;
+
+  const onScroll = () => {
+    const y = window.scrollY;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    if (bar) bar.style.transform = "scaleX(" + (max > 0 ? y / max : 0).toFixed(4) + ")";
+    if (head) head.classList.toggle("tuck", y > 260 && y > lastY);
+
+    const delta = y - lastY;
+    if (Math.abs(delta) > .5) dir = delta > 0 ? 1 : -1;
+    vel += Math.min(Math.abs(delta), 70) * .055;
+    lastY = y;
+    lightWords();
+    if (typeof sweepCheck === "function") sweepCheck();
+  };
+  window.addEventListener("scroll", onScroll, { passive:true });
+  window.addEventListener("resize", onScroll);
+  onScroll();
+
+  /* The ticker only animates while it is actually on screen.
+     (Background tabs are already handled: rAF is suspended there by spec.) */
+  if (track && !reduce) {
+    let ticking = false;
+    const tick = () => {
+      if (!ticking) return;
+      vel *= .92;
+      x -= dir * (.55 + vel);
+      if (x <= -wrapAt) x += wrapAt;
+      if (x >= 0) x -= wrapAt;
+      track.style.transform = "translate3d(" + x.toFixed(2) + "px,0,0)";
+      requestAnimationFrame(tick);
+    };
+    const strip = document.querySelector(".ticker");
+    if ("IntersectionObserver" in window && strip) {
+      new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting === ticking) return;
+        ticking = entry.isIntersecting;
+        if (ticking) requestAnimationFrame(tick);
+      }, { rootMargin:"140px 0px" }).observe(strip);
+    } else {
+      ticking = true;
+      tick();
+    }
+  }
+
+  /* ---------- 5. magnetic pull ---------- */
+  if (!reduce && window.matchMedia("(pointer:fine)").matches) {
+    document.querySelectorAll("[data-magnetic]").forEach((el) => {
+      const power = parseFloat(el.dataset.magnetic) || 18;
+      el.addEventListener("pointermove", (e) => {
+        const r = el.getBoundingClientRect();
+        const dx = (e.clientX - (r.left + r.width / 2)) / r.width;
+        const dy = (e.clientY - (r.top + r.height / 2)) / r.height;
+        el.classList.add("pulling");
+        el.style.transform = "translate(" + (dx * power).toFixed(2) + "px," + (dy * power).toFixed(2) + "px)";
+      });
+      el.addEventListener("pointerleave", () => {
+        el.classList.remove("pulling");
+        el.style.transform = "";
+      });
+    });
+  }
+
+  /* ---------- 6. hero crosshair ---------- */
+  const stickyPane = document.querySelector(".hero-sticky");
+  const guides = document.querySelector(".axis-guides");
+  if (stickyPane && guides && !reduce && window.matchMedia("(pointer:fine)").matches) {
+    const gx = guides.querySelector(".gx");
+    const gy = guides.querySelector(".gy");
+    const readout = guides.querySelector(".axis-readout");
+    stickyPane.addEventListener("pointermove", (e) => {
+      const r = stickyPane.getBoundingClientRect();
+      const px = e.clientX - r.left, py = e.clientY - r.top;
+      gx.style.transform = "translateY(" + py + "px)";
+      gy.style.transform = "translateX(" + px + "px)";
+      readout.style.left = px + "px";
+      readout.style.top  = py + "px";
+      readout.textContent = "X " + (px / r.width).toFixed(2) + "   Y " + (py / r.height).toFixed(2);
+      guides.classList.add("on");
+    }, { passive:true });
+    stickyPane.addEventListener("pointerleave", () => guides.classList.remove("on"));
+  }
+})();
+</script>
+</body>
+</html>
