@@ -1,0 +1,76 @@
+[
+  {
+    "id": "w-porcelain-axis",
+    "title": "Porcelain Axis",
+    "category": "Modeling",
+    "year": "2026",
+    "client": "Studio archive",
+    "role": "Modeling, Shading",
+    "tags": [
+      "Product",
+      "Ceramic",
+      "Blender"
+    ],
+    "link": "",
+    "blocks": [
+      {
+        "type": "text",
+        "text": "A pair of thrown forms rebuilt as one continuous surface. Every silhouette is read from two axes at once, so the profile never resolves into a single front view."
+      }
+    ],
+    "images": [],
+    "cover": 0,
+    "featured": true,
+    "published": true,
+    "order": 0
+  },
+  {
+    "id": "w-slow-orbit",
+    "title": "Slow Orbit",
+    "category": "Animation",
+    "year": "2025",
+    "client": "Contest entry",
+    "role": "Direction, Animation",
+    "tags": [
+      "Loop",
+      "Motion"
+    ],
+    "link": "",
+    "blocks": [
+      {
+        "type": "text",
+        "text": "A twelve second loop built around one deceleration curve. The camera does the acting; nothing else in the frame moves on its own."
+      }
+    ],
+    "images": [],
+    "cover": 0,
+    "featured": false,
+    "published": true,
+    "order": 1
+  },
+  {
+    "id": "w-field-notice",
+    "title": "Field Notice",
+    "category": "Branding",
+    "year": "2025",
+    "client": "Bureau Neue",
+    "role": "Creative direction, Type",
+    "tags": [
+      "Identity",
+      "Type",
+      "System"
+    ],
+    "link": "",
+    "blocks": [
+      {
+        "type": "text",
+        "text": "An identity carried entirely by proportion and rule weight. The mark is a measuring device, so it changes length with the format it sits in."
+      }
+    ],
+    "images": [],
+    "cover": 0,
+    "featured": false,
+    "published": true,
+    "order": 2
+  }
+]
