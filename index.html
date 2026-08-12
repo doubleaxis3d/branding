@@ -2011,14 +2011,29 @@
           headers: { "Content-Type": "application/json", "Accept": "application/json" },
           body: JSON.stringify(data)
         });
-        if (!res.ok) throw new Error("HTTP " + res.status);
+
+        /* A 200 is not the same as delivered. Web3Forms answers a rejected
+           submission — wrong or unverified access key, quota reached, spam
+           rules — with a body that says success:false, so checking res.ok
+           alone reports "Message sent" for mail that never left. Read the
+           body and let the service's own words through. */
+        let body = null;
+        try { body = await res.json(); } catch (parseErr) { body = null; }
+
+        if (!res.ok || (body && body.success === false)) {
+          const reason = (body && body.message) || ("HTTP " + res.status);
+          const wire = new Error(reason);
+          wire.detail = body;
+          throw wire;
+        }
 
         showSent({ name: data.name, email: data.email });
       } catch (err) {
-        console.error("Contact form failed:", err);
+        console.error("Contact form failed:", err.message, err.detail || "");
         const link = mailtoFallback();
         status.innerHTML =
-          'That did not send. Please try again, or ' +
+          'That did not send' + (err.message ? " (" + String(err.message).replace(/[<&>]/g, "") + ")" : "") +
+          '. Please try again, or ' +
           '<a href="' + link + '" style="text-decoration:underline">email us directly</a>.';
         status.classList.add("is-error");
       } finally {
