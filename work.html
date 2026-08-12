@@ -877,7 +877,15 @@
     transform:scaleX(0); transform-origin:100% 50%;
     transition:transform 1.15s cubic-bezier(.16,.84,.24,1) var(--d,0s);
   }
-  .motion [data-reveal="wipe"]{opacity:1; transform:none;}
+  /* `.motion [data-reveal]:not(.is-in)` above scores three classes, so a
+     plainer wipe rule loses to it and the heading ends up fading and
+     sliding after all — which is what kept promoting the glyphs onto a
+     layer and changing their weight at the end. These two selectors match
+     that specificity in both states, and the transition is cancelled on the
+     element itself so nothing about the type is ever animated. */
+  [data-reveal="wipe"]{transition:none;}
+  .motion [data-reveal="wipe"]:not(.is-in),
+  .motion [data-reveal="wipe"].is-in{opacity:1; transform:none; filter:none;}
   .motion [data-reveal="wipe"]:not(.is-in)::after{transform:scaleX(1);}
   .motion [data-reveal="wipe"].is-in::after{transform:scaleX(0);}
   [data-magnetic]{display:inline-block; will-change:transform; transition:transform .55s cubic-bezier(.2,.85,.25,1);}
