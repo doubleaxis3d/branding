@@ -863,8 +863,13 @@
   .motion [data-reveal]:not(.is-in){opacity:0; transform:translateY(32px);}
   [data-reveal="mask"]{transition:clip-path 1.15s cubic-bezier(.16,.84,.24,1) var(--d,0s);}
   .motion [data-reveal="mask"]:not(.is-in){opacity:1; transform:none; clip-path:inset(-0.16em 100% -0.30em -0.06em);}
-  /* once revealed the mask must not touch the glyphs at all */
   .motion [data-reveal="mask"].is-in{clip-path:inset(-0.16em -0.14em -0.30em -0.06em);}
+  /* An element carrying a clip-path keeps being drawn through a mask layer,
+     which switches the text to grayscale antialiasing and leaves a faint
+     rim around the glyphs. The clip is only needed while the line is
+     sliding in, so it is dropped the moment the reveal finishes and the
+     type goes back to rendering like ordinary text. */
+  .motion [data-reveal="mask"].mask-done{clip-path:none; transition:none;}
   [data-magnetic]{display:inline-block; will-change:transform; transition:transform .55s cubic-bezier(.2,.85,.25,1);}
   [data-magnetic].pulling{transition:transform .1s linear;}
   @media (prefers-reduced-motion: reduce){
@@ -2281,24 +2286,44 @@
 
   /* ---------- motion: reveals ---------- */
   let io = null;
+
+  /* Reveal a line, then take the clip-path off again once it has landed. */
+  const markIn = (el) => {
+    el.classList.add("is-in");
+    if (el.dataset.reveal !== "mask") return;
+    if (reduce) { el.classList.add("mask-done"); return; }
+    /* transitionend is the normal path; the timer covers the cases where it
+       never arrives — a background tab, or a transition the browser skips. */
+    const delay = parseFloat(getComputedStyle(el).transitionDelay) || 0;
+    clearTimeout(el._maskTimer);
+    el._maskTimer = setTimeout(() => el.classList.add("mask-done"), (1.15 + delay) * 1000 + 120);
+  };
+
+  document.addEventListener("transitionend", (e) => {
+    const el = e.target;
+    if (e.propertyName !== "clip-path" || !el.dataset || el.dataset.reveal !== "mask") return;
+    clearTimeout(el._maskTimer);
+    el.classList.add("mask-done");
+  });
+
   const revealScan = () => {
     const targets = $$("[data-reveal]:not(.is-in)");
     if (reduce || !("IntersectionObserver" in window)) {
-      targets.forEach((el) => el.classList.add("is-in"));
+      targets.forEach(markIn);
       return;
     }
     if (!io) {
       io = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
-          entry.target.classList.add("is-in");
+          markIn(entry.target);
           io.unobserve(entry.target);
         });
       }, { threshold: 0, rootMargin: "0px 0px -6% 0px" });
     }
     const vh = window.innerHeight;
     targets.forEach((el) => {
-      if (el.getBoundingClientRect().top < vh * 0.94) el.classList.add("is-in");
+      if (el.getBoundingClientRect().top < vh * 0.94) markIn(el);
       else io.observe(el);
     });
   };
