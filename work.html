@@ -2,7 +2,8 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0c">
 <title>Work — DOUBLE AXIS</title>
 <meta name="description" content="Double Axis — selected work archive.">
 <style>
@@ -37,13 +38,17 @@
     --panel: #101014;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{max-width:100%;}
+  /* `clip`, not `hidden`: hidden turns the body into a scroll container and
+     the sticky filter bar stops sticking. */
+  body{overflow-x:clip;}
   html{scroll-behavior:smooth;}
   body{
     background:var(--bg);
     color:var(--white);
     font-family:'Space Grotesk', sans-serif;
     font-synthesis:none;
-    overflow-x:clip;
+    -webkit-text-size-adjust:100%;
   }
   .display{
     font-family:'Anton', sans-serif;
@@ -237,7 +242,7 @@
   .gallery{
     padding:clamp(28px,4vw,58px) 5vw clamp(60px,8vw,110px);
     display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+    grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));
     gap:clamp(30px,3.4vw,54px) clamp(16px,1.8vw,28px);
   }
   .gallery.is-index{display:block; padding-top:0;}
@@ -246,7 +251,10 @@
     background:transparent; border:none; text-align:left; padding:0;
     cursor:pointer; isolation:isolate;
   }
-  .card.featured{grid-column:span 2;}
+  /* span 2 only once the grid actually has two columns — otherwise the card
+     creates an implicit second column and pushes the page sideways */
+  .card.featured{grid-column:auto;}
+  @media (min-width:780px){ .card.featured{grid-column:span 2;} }
   .card.is-hidden-item{opacity:.46;}
   .thumb{
     position:relative; overflow:hidden; aspect-ratio:4/3;
@@ -361,11 +369,21 @@
   .gallery.is-index .card .c-year{display:block;}
   .gallery.is-index .card:hover{background:rgba(244,244,242,.035);}
   @media (max-width:760px){
-    .gallery.is-index .card,
-    body.is-admin .gallery.is-index .card{grid-template-columns:40px minmax(0,1fr) 62px;}
+    .gallery.is-index .card{grid-template-columns:40px minmax(0,1fr) 62px;}
     .gallery.is-index .c-cat{display:none;}
     .gallery.is-index .c-year{grid-column:3;}
-    .gallery.is-index .card-tools{position:absolute; right:0; top:10px; grid-column:auto;}
+    /* in admin the tools get their own row instead of covering the year */
+    body.is-admin .gallery.is-index .card{
+      grid-template-columns:40px minmax(0,1fr) 62px;
+      grid-template-areas:"num title year" "tools tools tools";
+      row-gap:10px;
+    }
+    body.is-admin .gallery.is-index .c-num{grid-area:num;}
+    body.is-admin .gallery.is-index .c-title{grid-area:title;}
+    body.is-admin .gallery.is-index .c-year{grid-area:year;}
+    body.is-admin .gallery.is-index .card-tools{
+      grid-area:tools; position:static; justify-content:flex-start;
+    }
   }
   /* hover peek: the thumbnail rides with the cursor in index view */
   .peek{
@@ -712,6 +730,120 @@
     text-transform:uppercase; color:rgba(244,244,242,.34);
   }
   .lb-desc:empty{display:none;}
+
+  /* ===== PHONE, PORTRAIT =====================================
+     Everything below assumes a ~360-430px viewport: no hover, a thumb
+     doing the pointing, and a browser chrome that grows and shrinks as
+     you scroll. */
+  @media (max-width:560px){
+    /* the header stays put rather than tucking away over a short page */
+    header{padding:16px 5vw;}
+    .logo{font-size:16px;}
+    nav ul{gap:15px;}
+
+    .page-head{padding-top:clamp(92px,26vw,120px);}
+    .ph-kicker{font-size:9px; gap:6px;}
+    .ph-foot{gap:16px;}
+    .ph-foot p{font-size:12.5px;}
+    .ph-count{font-size:30px;}
+
+    /* one scrolling row instead of a wall of wrapped buttons */
+    .controls{
+      padding:11px 0 11px 5vw;
+      gap:10px; flex-wrap:nowrap; align-items:center;
+    }
+    .filters{
+      flex-wrap:nowrap; overflow-x:auto; gap:6px;
+      scrollbar-width:none; -webkit-overflow-scrolling:touch;
+      padding-right:6px;
+    }
+    .filters::-webkit-scrollbar{display:none;}
+    .chip{white-space:nowrap; flex-shrink:0; padding:8px 12px;}
+    .view-toggle{flex-shrink:0; padding-right:5vw; background:var(--bg);}
+    .view-toggle .vt{width:38px; height:34px;}
+
+    .admin-bar{
+      padding:10px 5vw; gap:8px;
+      overflow-x:auto; flex-wrap:nowrap; scrollbar-width:none;
+    }
+    .admin-bar::-webkit-scrollbar{display:none;}
+    .admin-bar .tag,.repo-label,.abtn{flex-shrink:0; white-space:nowrap;}
+    .admin-note{
+      flex:0 0 100%; order:9; white-space:normal;
+      font-size:9.5px; line-height:1.5;
+    }
+    .admin-bar .spacer{display:none;}
+    .abtn{min-height:40px; padding:0 13px;}
+
+    .gallery{padding-top:22px; gap:26px 0;}
+    .c-title{font-size:22px;}
+    /* fingers need more than a 34px square */
+    .card-tools button{width:42px; height:38px;}
+    .card-tools svg{width:15px; height:15px;}
+
+    .gallery.is-index .card{padding:14px 0;}
+    .gallery.is-index .c-title{font-size:17px;}
+
+    /* ---- overlays ---- */
+    .overlay-close{
+      right:10px; top:10px; width:46px; height:46px;
+      background:rgba(10,10,12,.9);
+    }
+    /* keep headings clear of the floating close button */
+    .lb-head,.sheet-head{padding-right:58px;}
+
+    .lb-doc{width:100%; padding:64px 5vw clamp(40px,12vw,70px);}
+    .lb-title{font-size:clamp(30px,9vw,40px); margin:12px 0 18px;}
+    .lb-facts{gap:0 20px;}
+    .lb-block p{font-size:14px; line-height:1.72;}
+    .lb-block + .lb-block{margin-top:26px;}
+    .lb-jump{flex-direction:column; gap:9px;}
+    .lb-jump button,.lb-jump button:last-child{text-align:left; padding:14px 16px;}
+
+    .sheet,.sheet.narrow{width:100%; margin:0; max-width:none; min-height:100%; border:none;}
+    .sheet-head{padding:22px 5vw 16px;}
+    .sheet-body{padding:20px 5vw;}
+    .sheet-foot{
+      padding:14px 5vw calc(14px + env(safe-area-inset-bottom));
+      position:sticky; bottom:0;
+      background:var(--panel); border-top:1px solid var(--line);
+      gap:8px;
+    }
+    .sheet-foot .abtn{flex:1; min-height:46px;}
+    .sheet-foot .left{display:none;}
+
+    /* 16px keeps mobile browsers from zooming in on focus */
+    .f input[type="text"],.f input[type="password"],.f input[type="url"],
+    .f textarea,.f select,.cblock textarea,.cblock .cap{
+      font-size:16px; padding:12px 13px;
+    }
+    .f{margin-bottom:16px;}
+    .fgrid{gap:0;}
+
+    .composer{padding:5px;}
+    .cblock{padding:10px; gap:10px;}
+    .cadd{gap:6px; padding:9px 0;}
+    .cadd button{padding:8px 12px;}
+    .cblock-head .tools button{width:34px; height:30px;}
+
+    .toast{left:5vw; right:5vw; bottom:16px; transform:translateY(20px); max-width:none;}
+    .toast.on{transform:translateY(0);}
+  }
+
+  /* very narrow (or large system font): drop to the essentials */
+  @media (max-width:380px){
+    nav ul{gap:12px;}
+    nav a{font-size:9.5px;}
+    .lb-facts div{padding:5px 0;}
+    .gallery.is-index .card{grid-template-columns:32px minmax(0,1fr) 54px;}
+  }
+
+  /* short landscape phones: the tall page head wastes the whole screen */
+  @media (max-height:480px) and (orientation:landscape){
+    .page-head{padding-top:88px;}
+    .page-title{font-size:clamp(40px,9vw,90px);}
+    .lb-doc{padding-top:56px;}
+  }
 
   /* ===== MOTION ===== */
   [data-reveal]{
