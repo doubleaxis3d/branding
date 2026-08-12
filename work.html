@@ -11,17 +11,17 @@
   @font-face{
     font-family:'Anton';
     src:url('assets/fonts/anton.woff2') format('woff2');
-    font-weight:400; font-style:normal; font-display:block;
+    font-weight:400; font-style:normal; font-display:swap;
   }
   @font-face{
     font-family:'Archivo';
     src:url('assets/fonts/archivo.woff2') format('woff2');
-    font-weight:900; font-stretch:62% 125%; font-style:normal; font-display:block;
+    font-weight:900; font-stretch:62% 125%; font-style:normal; font-display:swap;
   }
   @font-face{
     font-family:'Space Grotesk';
     src:url('assets/fonts/space-grotesk.woff2') format('woff2');
-    font-weight:300 700; font-style:normal; font-display:block;
+    font-weight:300 700; font-style:normal; font-display:swap;
   }
   /* fonts end */
 
@@ -47,11 +47,19 @@
     background:var(--bg);
     color:var(--white);
     font-family:'Space Grotesk', sans-serif;
-    font-synthesis:none;
+    font-synthesis:none; font-synthesis-weight:none;
     -webkit-text-size-adjust:100%;
   }
   .display{
     font-family:'Anton', sans-serif;
+    /* Anton ships one weight (400). These headings are h1/h2, so the browser
+       stylesheet asks for 700 — a weight that does not exist. It answers by
+       faking a bolder face, or, if the font file has not arrived, by falling
+       back to bold sans-serif. Either way the type thickens the moment the
+       real answer lands, which is what looked like the reveal animation
+       changing the text. Asking for the weight that actually exists removes
+       the whole question. */
+    font-weight:400;
     text-transform:uppercase;
     letter-spacing:0.005em;
     line-height:0.86;
@@ -127,7 +135,7 @@
   }
   header.tuck{transform:translateY(-130%);}
   body.locked header{mix-blend-mode:normal;}
-  .logo{font-family:'Anton'; font-size:18px; letter-spacing:0.05em; text-transform:uppercase;}
+  .logo{font-family:'Anton'; font-weight:400; font-size:18px; letter-spacing:0.05em; text-transform:uppercase;}
   nav ul{display:flex; gap:34px; list-style:none;}
   nav a{font-size:12px; text-transform:uppercase; letter-spacing:0.1em; opacity:0.85;}
   nav a:hover{opacity:1;}
@@ -174,7 +182,7 @@
   }
   .ph-foot p{max-width:52ch; font-size:13.5px; line-height:1.62; color:rgba(244,244,242,.66);}
   .ph-count{
-    font-family:'Anton'; font-size:clamp(30px,4vw,54px); line-height:1;
+    font-family:'Anton'; font-weight:400; font-size:clamp(30px,4vw,54px); line-height:1;
     color:var(--lime); font-variant-numeric:tabular-nums;
   }
   .ph-count small{
@@ -320,7 +328,7 @@
     color:var(--grey); margin-left:auto;
   }
   .c-title{
-    font-family:'Anton',sans-serif; text-transform:uppercase; line-height:.98;
+    font-family:'Anton',sans-serif; font-weight:400; text-transform:uppercase; line-height:.98;
     font-size:clamp(21px,2vw,29px); letter-spacing:.005em;
     transition:color .3s ease;
   }
@@ -411,7 +419,7 @@
     border:1px dashed var(--line);
   }
   .empty-state h3{
-    font-family:'Anton'; text-transform:uppercase; font-size:clamp(24px,3.4vw,42px);
+    font-family:'Anton'; font-weight:400; text-transform:uppercase; font-size:clamp(24px,3.4vw,42px);
     color:rgba(244,244,242,.82); margin-bottom:12px;
   }
   .empty-state p{font-size:13px; color:var(--grey);}
@@ -486,7 +494,7 @@
   .lb-head{padding-bottom:clamp(26px,3.4vw,44px); border-bottom:1px solid var(--line);}
   .lb-index{font-size:10px; letter-spacing:.16em; color:var(--lime); text-transform:uppercase;}
   .lb-title{
-    font-family:'Anton'; text-transform:uppercase; line-height:.92;
+    font-family:'Anton'; font-weight:400; text-transform:uppercase; line-height:.92;
     font-size:clamp(34px,6vw,78px); margin:14px 0 22px;
   }
   .lb-facts{display:flex; flex-wrap:wrap; gap:0 34px;}
@@ -539,7 +547,7 @@
   .lb-jump button:last-child{text-align:right;}
   .lb-jump button:hover{border-color:var(--lime); background:rgba(215,255,58,.05);}
   .lb-jump .dir{font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--lime);}
-  .lb-jump .name{font-family:'Anton'; text-transform:uppercase; font-size:17px; line-height:1;}
+  .lb-jump .name{font-family:'Anton'; font-weight:400; text-transform:uppercase; font-size:17px; line-height:1;}
   .lb-jump button[disabled]{opacity:.3; cursor:default;}
 
   /* ===== BLOCK COMPOSER ===== */
@@ -620,7 +628,7 @@
     display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
   }
   .sheet-head h2{
-    font-family:'Anton'; text-transform:uppercase; font-size:clamp(21px,2.4vw,30px); line-height:1;
+    font-family:'Anton'; font-weight:400; text-transform:uppercase; font-size:clamp(21px,2.4vw,30px); line-height:1;
   }
   .sheet-head .eyebrow{font-size:9.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--lime);}
   .sheet-body{padding:clamp(20px,3vw,34px);}
@@ -857,8 +865,8 @@
 
   /* ===== MOTION ===== */
   [data-reveal]{
-    transition:opacity 1s cubic-bezier(.16,.84,.24,1) var(--d,0s),
-               transform 1s cubic-bezier(.16,.84,.24,1) var(--d,0s);
+    transition:opacity 1.35s cubic-bezier(.16,.84,.24,1) var(--d,0s),
+               transform 1.35s cubic-bezier(.16,.84,.24,1) var(--d,0s);
   }
   .motion [data-reveal]:not(.is-in){opacity:0; transform:translateY(32px);}
   /* WIPE REVEAL
@@ -883,7 +891,7 @@
        subpixel rendering, and it visibly gains weight. Animating width
        stays on the main thread, so no layer is ever created and the type
        is rasterised the same way from first frame to last. */
-    transition:width 1.15s cubic-bezier(.16,.84,.24,1) var(--d,0s);
+    transition:width 1.9s cubic-bezier(.22,.9,.24,1) var(--d,0s);
   }
   /* `.motion [data-reveal]:not(.is-in)` above scores three classes, so a
      plainer wipe rule loses to it and the heading ends up fading and
@@ -936,11 +944,11 @@
   </div>
   <h1 class="page-title display">
     <span class="hl" data-reveal="wipe">Selected</span>
-    <span class="hl" data-reveal="wipe" style="--d:.13s"><span class="accent">Work</span></span>
+    <span class="hl" data-reveal="wipe" style="--d:.28s"><span class="accent">Work</span></span>
   </h1>
   <div class="ph-foot">
-    <p data-reveal style="--d:.2s">Modeling, animation, branding and rendering — collected as one index. Open any frame for the full set of stills and the brief behind it.</p>
-    <div class="ph-count" data-reveal style="--d:.28s">
+    <p data-reveal style="--d:.55s">Modeling, animation, branding and rendering — collected as one index. Open any frame for the full set of stills and the brief behind it.</p>
+    <div class="ph-count" data-reveal style="--d:.7s">
       <span id="totalCount">00</span>
       <small>Projects on record</small>
     </div>
