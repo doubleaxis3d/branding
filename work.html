@@ -156,7 +156,17 @@
     font-size:clamp(52px,13.5vw,196px);
     padding-bottom:.04em;
   }
-  .page-title .hl{display:block; overflow:hidden; padding-top:.07em; margin-top:-.07em;}
+  /* The line wrapper is clipped so the mask reveal can slide in from behind
+     it. Anton's glyphs paint a little past their advance width, though, so
+     the clip has to sit slightly wider than the text box or the last letter
+     (the K in WORK) loses its right edge. Padding gives the ink room; the
+     negative margin keeps the line optically aligned with everything else. */
+  .page-title .hl{
+    display:block; overflow:hidden;
+    padding-top:.07em; margin-top:-.07em;
+    padding-right:.12em; margin-right:-.12em;
+    padding-left:.04em; margin-left:-.04em;
+  }
   .page-title .accent{color:var(--pink);}
   .ph-foot{
     display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
@@ -852,8 +862,9 @@
   }
   .motion [data-reveal]:not(.is-in){opacity:0; transform:translateY(32px);}
   [data-reveal="mask"]{transition:clip-path 1.15s cubic-bezier(.16,.84,.24,1) var(--d,0s);}
-  .motion [data-reveal="mask"]:not(.is-in){opacity:1; transform:none; clip-path:inset(-0.16em 100% -0.30em 0);}
-  .motion [data-reveal="mask"].is-in{clip-path:inset(-0.16em 0 -0.30em 0);}
+  .motion [data-reveal="mask"]:not(.is-in){opacity:1; transform:none; clip-path:inset(-0.16em 100% -0.30em -0.06em);}
+  /* once revealed the mask must not touch the glyphs at all */
+  .motion [data-reveal="mask"].is-in{clip-path:inset(-0.16em -0.14em -0.30em -0.06em);}
   [data-magnetic]{display:inline-block; will-change:transform; transition:transform .55s cubic-bezier(.2,.85,.25,1);}
   [data-magnetic].pulling{transition:transform .1s linear;}
   @media (prefers-reduced-motion: reduce){
