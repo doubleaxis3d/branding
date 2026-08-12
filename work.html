@@ -875,11 +875,30 @@
                transform 1.35s cubic-bezier(.16,.84,.24,1) var(--d,0s);
   }
   .motion [data-reveal]:not(.is-in){opacity:0; transform:translateY(32px);}
-  /* The page heading has no entrance animation, on purpose.
-     Every version of one — clip-path, transform, a sliding cover panel —
-     ended with the type being repainted, and the repaint changed its
-     weight by about a pixel. The heading is now drawn once, on first
-     paint, and never touched again. Nothing here transitions. */
+  /* HEADING ENTRANCE
+     The weight shift everyone kept chasing came from the text being
+     rasterised two different ways. An animating element is handed to the
+     compositor, where glyphs are drawn with grayscale antialiasing; when
+     the animation ends the layer is discarded and the text is redrawn with
+     subpixel antialiasing, which reads as roughly a pixel of extra weight.
+     Overlay tricks did not help, because the overlay forced the same
+     switch on the text underneath it.
+     So the layer is simply never given back: `will-change` keeps these two
+     lines composited before, during and after the motion, and the font
+     smoothing is pinned as well. One rasterisation, start to finish. */
+  .page-title{
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+  .page-title .hl{
+    will-change:transform, opacity;
+    backface-visibility:hidden;
+    transition:opacity 1.15s cubic-bezier(.2,.8,.25,1) var(--d,0s),
+               transform 1.15s cubic-bezier(.2,.85,.25,1) var(--d,0s);
+  }
+  /* a short rise, sized in em so it tracks the heading at any width */
+  .motion .page-title .hl:not(.is-in){opacity:0; transform:translate3d(0,.17em,0);}
+  .motion .page-title .hl.is-in{opacity:1; transform:translate3d(0,0,0);}
   [data-magnetic]{display:inline-block; will-change:transform; transition:transform .55s cubic-bezier(.2,.85,.25,1);}
   [data-magnetic].pulling{transition:transform .1s linear;}
   @media (prefers-reduced-motion: reduce){
@@ -918,8 +937,8 @@
     <span>Double Axis — Selected Work</span>
   </div>
   <h1 class="page-title display">
-    <span class="hl">Selected</span>
-    <span class="hl"><span class="accent">Work</span></span>
+    <span class="hl" data-reveal>Selected</span>
+    <span class="hl" data-reveal style="--d:.16s"><span class="accent">Work</span></span>
   </h1>
   <div class="ph-foot">
     <p data-reveal style="--d:.55s">Modeling, animation, branding and rendering — collected as one index. Open any frame for the full set of stills and the brief behind it.</p>
