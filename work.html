@@ -156,13 +156,13 @@
     font-size:clamp(52px,13.5vw,196px);
     padding-bottom:.04em;
   }
-  /* The line wrapper is clipped so the mask reveal can slide in from behind
-     it. Anton's glyphs paint a little past their advance width, though, so
-     the clip has to sit slightly wider than the text box or the last letter
-     (the K in WORK) loses its right edge. Padding gives the ink room; the
-     negative margin keeps the line optically aligned with everything else. */
+  /* The wipe panel is clipped to this box. Anton's glyphs paint a little
+     past their advance width, so the box has to sit slightly wider than the
+     text or the last letter (the K in WORK) loses its right edge. Padding
+     gives the ink room; the negative margin keeps the line optically
+     aligned with everything else. */
   .page-title .hl{
-    display:block; overflow:hidden;
+    display:block; position:relative; overflow:hidden;
     padding-top:.07em; margin-top:-.07em;
     padding-right:.12em; margin-right:-.12em;
     padding-left:.04em; margin-left:-.04em;
@@ -861,22 +861,33 @@
                transform 1s cubic-bezier(.16,.84,.24,1) var(--d,0s);
   }
   .motion [data-reveal]:not(.is-in){opacity:0; transform:translateY(32px);}
-  [data-reveal="mask"]{transition:clip-path 1.15s cubic-bezier(.16,.84,.24,1) var(--d,0s);}
-  .motion [data-reveal="mask"]:not(.is-in){opacity:1; transform:none; clip-path:inset(-0.16em 100% -0.30em -0.06em);}
-  .motion [data-reveal="mask"].is-in{clip-path:inset(-0.16em -0.14em -0.30em -0.06em);}
-  /* An element carrying a clip-path keeps being drawn through a mask layer,
-     which switches the text to grayscale antialiasing and leaves a faint
-     rim around the glyphs. The clip is only needed while the line is
-     sliding in, so it is dropped the moment the reveal finishes and the
-     type goes back to rendering like ordinary text. */
-  .motion [data-reveal="mask"].mask-done{clip-path:none; transition:none;}
+  /* WIPE REVEAL
+     Earlier versions animated clip-path on the text itself. Anything
+     animated that way is lifted onto its own compositing layer for the
+     duration, which switches the glyphs to grayscale antialiasing — and
+     when the layer is dropped at the end they snap back to subpixel
+     rendering and visibly gain weight. Clipping the type also shaved the
+     edge off the K.
+     So the type is now left completely alone. A plain background-coloured
+     panel sits over the line and slides away instead. Only the panel is
+     ever animated, and a flat rectangle has no antialiasing to change. */
+  [data-reveal="wipe"]::after{
+    content:""; position:absolute; inset:0;
+    background:var(--bg); pointer-events:none;
+    transform:scaleX(0); transform-origin:100% 50%;
+    transition:transform 1.15s cubic-bezier(.16,.84,.24,1) var(--d,0s);
+  }
+  .motion [data-reveal="wipe"]{opacity:1; transform:none;}
+  .motion [data-reveal="wipe"]:not(.is-in)::after{transform:scaleX(1);}
+  .motion [data-reveal="wipe"].is-in::after{transform:scaleX(0);}
   [data-magnetic]{display:inline-block; will-change:transform; transition:transform .55s cubic-bezier(.2,.85,.25,1);}
   [data-magnetic].pulling{transition:transform .1s linear;}
   @media (prefers-reduced-motion: reduce){
     html{scroll-behavior:auto;}
-    [data-reveal],[data-reveal="mask"],[data-magnetic]{
+    [data-reveal],[data-magnetic]{
       opacity:1 !important; transform:none !important; clip-path:none !important; transition:none !important;
     }
+    [data-reveal="wipe"]::after{display:none !important;}
     .peek{display:none;}
   }
 </style>
@@ -908,8 +919,8 @@
     <span>Double Axis — Selected Work</span>
   </div>
   <h1 class="page-title display">
-    <span class="hl"><span data-reveal="mask">Selected</span></span>
-    <span class="hl"><span data-reveal="mask" style="--d:.13s"><span class="accent">Work</span></span></span>
+    <span class="hl" data-reveal="wipe">Selected</span>
+    <span class="hl" data-reveal="wipe" style="--d:.13s"><span class="accent">Work</span></span>
   </h1>
   <div class="ph-foot">
     <p data-reveal style="--d:.2s">Modeling, animation, branding and rendering — collected as one index. Open any frame for the full set of stills and the brief behind it.</p>
@@ -2287,24 +2298,7 @@
   /* ---------- motion: reveals ---------- */
   let io = null;
 
-  /* Reveal a line, then take the clip-path off again once it has landed. */
-  const markIn = (el) => {
-    el.classList.add("is-in");
-    if (el.dataset.reveal !== "mask") return;
-    if (reduce) { el.classList.add("mask-done"); return; }
-    /* transitionend is the normal path; the timer covers the cases where it
-       never arrives — a background tab, or a transition the browser skips. */
-    const delay = parseFloat(getComputedStyle(el).transitionDelay) || 0;
-    clearTimeout(el._maskTimer);
-    el._maskTimer = setTimeout(() => el.classList.add("mask-done"), (1.15 + delay) * 1000 + 120);
-  };
-
-  document.addEventListener("transitionend", (e) => {
-    const el = e.target;
-    if (e.propertyName !== "clip-path" || !el.dataset || el.dataset.reveal !== "mask") return;
-    clearTimeout(el._maskTimer);
-    el.classList.add("mask-done");
-  });
+  const markIn = (el) => el.classList.add("is-in");
 
   const revealScan = () => {
     const targets = $$("[data-reveal]:not(.is-in)");
