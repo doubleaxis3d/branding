@@ -162,7 +162,7 @@
      gives the ink room; the negative margin keeps the line optically
      aligned with everything else. */
   .page-title .hl{
-    display:block; position:relative; overflow:hidden;
+    display:block; position:relative;
     padding-top:.07em; margin-top:-.07em;
     padding-right:.12em; margin-right:-.12em;
     padding-left:.04em; margin-left:-.04em;
@@ -872,10 +872,18 @@
      panel sits over the line and slides away instead. Only the panel is
      ever animated, and a flat rectangle has no antialiasing to change. */
   [data-reveal="wipe"]::after{
-    content:""; position:absolute; inset:0;
+    content:""; position:absolute;
+    top:0; bottom:0; right:0; width:0%;
     background:var(--bg); pointer-events:none;
-    transform:scaleX(0); transform-origin:100% 50%;
-    transition:transform 1.15s cubic-bezier(.16,.84,.24,1) var(--d,0s);
+    /* `width`, deliberately, not `transform`. A transform (or opacity, or
+       filter, or clip-path) animation is handed to the compositor, and the
+       panel's layer drags the text sharing its clip box onto that layer
+       too — where glyphs are drawn with grayscale antialiasing. The layer
+       is thrown away when the animation ends, the text snaps back to
+       subpixel rendering, and it visibly gains weight. Animating width
+       stays on the main thread, so no layer is ever created and the type
+       is rasterised the same way from first frame to last. */
+    transition:width 1.15s cubic-bezier(.16,.84,.24,1) var(--d,0s);
   }
   /* `.motion [data-reveal]:not(.is-in)` above scores three classes, so a
      plainer wipe rule loses to it and the heading ends up fading and
@@ -886,8 +894,8 @@
   [data-reveal="wipe"]{transition:none;}
   .motion [data-reveal="wipe"]:not(.is-in),
   .motion [data-reveal="wipe"].is-in{opacity:1; transform:none; filter:none;}
-  .motion [data-reveal="wipe"]:not(.is-in)::after{transform:scaleX(1);}
-  .motion [data-reveal="wipe"].is-in::after{transform:scaleX(0);}
+  .motion [data-reveal="wipe"]:not(.is-in)::after{width:100%;}
+  .motion [data-reveal="wipe"].is-in::after{width:0%;}
   [data-magnetic]{display:inline-block; will-change:transform; transition:transform .55s cubic-bezier(.2,.85,.25,1);}
   [data-magnetic].pulling{transition:transform .1s linear;}
   @media (prefers-reduced-motion: reduce){
