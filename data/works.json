@@ -27,26 +27,31 @@
   },
   {
     "id": "wmsqw1egja7ng6",
-    "title": "sdsdsad",
-    "category": "asdasd",
+    "title": "Brawlimas_in_Starfield",
+    "category": "media",
     "year": "2026",
-    "client": "asdasd",
-    "role": "",
-    "desc": "",
-    "link": "",
+    "client": "Supercell korea",
+    "role": "Direction, Modeling, Animation, Lighting",
+    "desc": "**Doubleaxis **produced media content for Supercell's offline event, \"Merry Brawlimas in Starfield.”\nBuilding on its extensive experience operating regular pop-up events and merchandise shops at Starfield Hanam, Hivelab partnered once again as a trusted collaborator, following the previous \"Showdown in Starfield\" project.\nFor this project, **Doubleaxis** made active use of Starfield Hanam's media tower and panorama screens to amplify the Christmas atmosphere throughout the venue, and planned, directed, and produced immersive content that allowed visitors to more deeply experience the Brawl Stars Christmas event within the space.",
+    "link": "https://www.behance.net/gallery/241764585/Supercell-BrawlStars-Brawlimas-2025?tracking_source=search_projects|hivelab&l=5",
     "tags": [
-      "asdasdasdasd"
+      "3d",
+      "branding",
+      "animation",
+      "rendering"
     ],
     "blocks": [
       {
-        "type": "image",
-        "src": "assets/work/sdsdsad-aa530e3c.webp",
+        "type": "video",
+        "url": "https://vimeo.com/1135339302",
         "caption": ""
+      },
+      {
+        "type": "text",
+        "text": "**Doubleaxis **produced media content for Supercell's offline event, \"Merry Brawlimas in Starfield.”\nBuilding on its extensive experience operating regular pop-up events and merchandise shops at Starfield Hanam, Hivelab partnered once again as a trusted collaborator, following the previous \"Showdown in Starfield\" project.\nFor this project, **Doubleaxis** made active use of Starfield Hanam's media tower and panorama screens to amplify the Christmas atmosphere throughout the venue, and planned, directed, and produced immersive content that allowed visitors to more deeply experience the Brawl Stars Christmas event within the space."
       }
     ],
-    "images": [
-      "assets/work/sdsdsad-aa530e3c.webp"
-    ],
+    "images": [],
     "cover": 0,
     "featured": false,
     "published": true,
