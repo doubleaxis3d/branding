@@ -6,12 +6,13 @@
     "year": "2026",
     "client": "Studio archive",
     "role": "Modeling, Shading",
+    "desc": "A pair of thrown forms rebuilt as one continuous surface. Every silhouette is read from two axes at once, so the profile never resolves into a single front view.",
+    "link": "",
     "tags": [
       "Product",
       "Ceramic",
       "Blender"
     ],
-    "link": "",
     "blocks": [
       {
         "type": "text",
@@ -25,17 +26,45 @@
     "order": 0
   },
   {
+    "id": "wmsqw1egja7ng6",
+    "title": "sdsdsad",
+    "category": "asdasd",
+    "year": "2026",
+    "client": "asdasd",
+    "role": "",
+    "desc": "",
+    "link": "",
+    "tags": [
+      "asdasdasdasd"
+    ],
+    "blocks": [
+      {
+        "type": "image",
+        "src": "assets/work/sdsdsad-aa530e3c.webp",
+        "caption": ""
+      }
+    ],
+    "images": [
+      "assets/work/sdsdsad-aa530e3c.webp"
+    ],
+    "cover": 0,
+    "featured": false,
+    "published": true,
+    "order": 1
+  },
+  {
     "id": "w-slow-orbit",
     "title": "Slow Orbit",
     "category": "Animation",
     "year": "2025",
     "client": "Contest entry",
     "role": "Direction, Animation",
+    "desc": "A twelve second loop built around one deceleration curve. The camera does the acting; nothing else in the frame moves on its own.",
+    "link": "",
     "tags": [
       "Loop",
       "Motion"
     ],
-    "link": "",
     "blocks": [
       {
         "type": "text",
@@ -46,7 +75,7 @@
     "cover": 0,
     "featured": false,
     "published": true,
-    "order": 1
+    "order": 2
   },
   {
     "id": "w-field-notice",
@@ -55,12 +84,13 @@
     "year": "2025",
     "client": "Bureau Neue",
     "role": "Creative direction, Type",
+    "desc": "An identity carried entirely by proportion and rule weight. The mark is a measuring device, so it changes length with the format it sits in.",
+    "link": "",
     "tags": [
       "Identity",
       "Type",
       "System"
     ],
-    "link": "",
     "blocks": [
       {
         "type": "text",
@@ -71,6 +101,6 @@
     "cover": 0,
     "featured": false,
     "published": true,
-    "order": 2
+    "order": 3
   }
 ]
