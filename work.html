@@ -545,6 +545,23 @@
     max-width:62ch; font-size:15px; line-height:1.78;
     color:rgba(244,244,242,.78); white-space:pre-wrap;
   }
+  .lb-block p strong{color:var(--white); font-weight:700;}
+  .lb-block p em{font-style:italic;}
+  .lb-block p u{text-decoration:underline; text-underline-offset:.18em;}
+  .lb-block p s{text-decoration:line-through; color:rgba(244,244,242,.5);}
+  .lb-block p a{
+    color:var(--lime); text-decoration:underline; text-underline-offset:.18em;
+    word-break:break-word;
+  }
+
+  /* embedded video */
+  .lb-block.video .ratio{
+    position:relative; width:100%; aspect-ratio:16/9;
+    background:var(--panel); border:1px solid var(--line);
+  }
+  .lb-block.video .ratio iframe{
+    position:absolute; inset:0; width:100%; height:100%; border:0; display:block;
+  }
   .lb-block.text + .lb-block.image,
   .lb-block.image + .lb-block.text{margin-top:clamp(34px,5vw,72px);}
   .lb-empty{
@@ -588,6 +605,27 @@
   .cblock-head .tools button:hover{border-color:var(--lime); color:var(--lime);}
   .cblock-head .tools button.danger:hover{border-color:var(--pink); color:var(--pink);}
   .cblock-head .tools button[disabled]{opacity:.28; cursor:default;}
+  /* formatting toolbar */
+  .fmt{
+    grid-column:1/-1; display:flex; gap:5px; align-items:center; flex-wrap:wrap;
+    margin-bottom:-4px;
+  }
+  .fmt button{
+    width:30px; height:26px; display:grid; place-items:center;
+    background:transparent; border:1px solid var(--line); color:rgba(244,244,242,.72);
+    font-size:12px; line-height:1; cursor:pointer;
+    transition:border-color .2s, color .2s, background .2s;
+  }
+  .fmt button:hover{border-color:var(--lime); color:var(--lime);}
+  .fmt button b{font-weight:700;}
+  .fmt button i{font-family:Georgia, serif; font-style:italic;}
+  .fmt button u{text-decoration:underline;}
+  .fmt button s{text-decoration:line-through;}
+  .fmt .tip{
+    font-size:9.5px; letter-spacing:.04em; color:rgba(244,244,242,.34); margin-left:4px;
+  }
+  @media (max-width:560px){ .fmt .tip{display:none;} }
+
   .cblock textarea{
     grid-column:1/-1; width:100%; min-height:104px; resize:vertical;
     background:rgba(244,244,242,.04); border:1px solid var(--line); color:var(--white);
@@ -605,6 +643,24 @@
   }
   .cblock .cap:focus{outline:none; border-color:var(--lime);}
   .cblock.image{grid-template-columns:130px minmax(0,1fr);}
+  .cblock.video{grid-template-columns:1fr;}
+  .cblock.video .vurl{
+    grid-column:1/-1; width:100%;
+    background:rgba(244,244,242,.04); border:1px solid var(--line);
+    color:var(--white); font-family:inherit; font-size:13.5px; padding:11px 13px;
+  }
+  .cblock.video .vurl:focus{outline:none; border-color:var(--lime); background:rgba(215,255,58,.05);}
+  .cblock.video .vstate{
+    grid-column:1/-1; display:flex; align-items:center; gap:9px;
+    font-size:10.5px; letter-spacing:.04em; color:var(--grey);
+  }
+  .cblock.video .vstate .ok{color:var(--lime);}
+  .cblock.video .vstate .no{color:var(--pink);}
+  .cblock.video .vthumb{
+    grid-column:1/-1; width:172px; aspect-ratio:16/9; overflow:hidden;
+    border:1px solid var(--line); background:var(--panel);
+  }
+  .cblock.video .vthumb img{width:100%; height:100%; object-fit:cover; display:block;}
   .cblock .cover-btn{
     align-self:flex-start; background:transparent; border:1px solid var(--line);
     color:rgba(244,244,242,.7); padding:6px 11px; font-size:9.5px; font-weight:600;
@@ -1103,7 +1159,7 @@
         <label>내용</label>
         <div class="composer" id="blocks"></div>
         <input type="file" id="fileInput" accept="image/*" multiple hidden>
-        <p class="hint">이미지와 글은 여기 놓인 순서 그대로 보입니다. 블록 사이의 <b>＋</b> 줄을 눌러 그 자리에 글이나 이미지를 끼워 넣으세요. 이미지는 가로 1600px로 줄여 보관하며, <b>커버</b>로 지정한 이미지가 목록의 썸네일이 됩니다.</p>
+        <p class="hint">글·이미지·영상은 여기 놓인 순서 그대로 보입니다. 블록 사이의 <b>＋</b> 줄을 눌러 그 자리에 원하는 것을 끼워 넣으세요. 글에는 <b>B</b> <i>I</i> <u>U</u> <s>S</s> 서식을 쓸 수 있고, 글 안에 YouTube·Vimeo 주소를 한 줄로 붙여넣으면 그대로 영상이 됩니다. 이미지는 가로 1600px로 줄여 보관하며 <b>커버</b>로 지정한 것이 목록 썸네일이 됩니다.</p>
       </div>
 
       <div class="fgrid">
@@ -1252,10 +1308,17 @@
      working unchanged. */
   const normBlocks = (w) => {
     if (Array.isArray(w.blocks) && w.blocks.length) {
-      return w.blocks.map((b) => (b && b.type === "text")
-        ? { type: "text", text: String(b.text || "") }
-        : { type: "image", src: String((b && b.src) || ""), caption: String((b && b.caption) || "") })
-        .filter((b) => b.type === "text" ? b.text.trim() !== "" : b.src !== "");
+      return w.blocks.map((b) => {
+        if (!b) return null;
+        if (b.type === "text") return { type: "text", text: String(b.text || "") };
+        if (b.type === "video") return { type: "video", url: String(b.url || ""), caption: String(b.caption || "") };
+        return { type: "image", src: String(b.src || ""), caption: String(b.caption || "") };
+      }).filter((b) => {
+        if (!b) return false;
+        if (b.type === "text") return b.text.trim() !== "";
+        if (b.type === "video") return b.url !== "";
+        return b.src !== "";
+      });
     }
     /* older records: every image, then the description */
     const out = (Array.isArray(w.images) ? w.images : [])
@@ -1266,6 +1329,44 @@
     return out;
   };
   const imagesOf = (blocks) => blocks.filter((b) => b.type === "image").map((b) => b.src);
+
+  /* ---------- video links ----------
+     Only the two services worth embedding are recognised; anything else is
+     left as a plain link rather than dropped into an iframe we cannot vouch
+     for. YouTube is loaded from the nocookie host. */
+  const videoInfo = (raw) => {
+    const url = String(raw || "").trim();
+    if (!/^https?:\/\//i.test(url)) return null;
+    let m = url.match(/(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:[^#]*&)?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i);
+    if (m) {
+      const t = url.match(/[?&](?:t|start)=(\d+)/);
+      return {
+        kind: "YouTube", id: m[1],
+        src: "https://www.youtube-nocookie.com/embed/" + m[1] + (t ? "?start=" + t[1] : ""),
+        thumb: "https://i.ytimg.com/vi/" + m[1] + "/hqdefault.jpg"
+      };
+    }
+    m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/i);
+    if (m) return { kind: "Vimeo", id: m[1], src: "https://player.vimeo.com/video/" + m[1], thumb: "" };
+    return null;
+  };
+
+  /* ---------- inline formatting ----------
+     Text is stored with plain markers (**bold**, *italic*, __underline__,
+     ~~strike~~) rather than HTML. The JSON that lands in the repo stays
+     readable and hand-editable, and because the string is escaped before
+     any tag is introduced there is no way for markup in a post to become
+     live HTML. */
+  const richText = (raw) => {
+    let s = esc(raw);
+    s = s.replace(/\*\*([^*\n]+?)\*\*/g, "<strong>$1</strong>");
+    s = s.replace(/__([^_\n]+?)__/g, "<u>$1</u>");
+    s = s.replace(/~~([^~\n]+?)~~/g, "<s>$1</s>");
+    s = s.replace(/(^|[^*\w])\*([^*\n]+?)\*(?!\*)/g, "$1<em>$2</em>");
+    s = s.replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)\]}])/g,
+      '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+    return s;
+  };
   const textOf = (blocks) => blocks.filter((b) => b.type === "text").map((b) => b.text).join("\n\n");
 
   const normalize = (w, i) => {
@@ -1582,6 +1683,49 @@
   let lbId = null;
   const lb = $("#lightbox");
 
+  const embedHTML = (v, caption) =>
+    '<div class="lb-block video"><figure><div class="ratio">' +
+      '<iframe src="' + v.src + '" title="' + esc(caption || (v.kind + " video")) + '"' +
+      ' loading="lazy" referrerpolicy="strict-origin-when-cross-origin"' +
+      ' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"' +
+      " allowfullscreen></iframe></div>" +
+      (caption ? "<figcaption>" + esc(caption) + "</figcaption>" : "") +
+    "</figure></div>";
+
+  /* A video URL sitting on a line of its own inside a text block becomes a
+     player, so a link pasted while writing embeds itself without the writer
+     having to reach for the video button. */
+  const textBlockHTML = (text) => {
+    const out = [];
+    let buf = [];
+    const flush = () => {
+      const chunk = buf.join("\n");
+      if (chunk.trim()) out.push('<div class="lb-block text"><p>' + richText(chunk) + "</p></div>");
+      buf = [];
+    };
+    String(text).split("\n").forEach((line) => {
+      const v = videoInfo(line);
+      if (v && line.trim() === line.trim().split(/\s+/)[0]) { flush(); out.push(embedHTML(v, "")); }
+      else buf.push(line);
+    });
+    flush();
+    return out.join("");
+  };
+
+  const blockHTML = (b, w) => {
+    if (b.type === "image") {
+      return '<div class="lb-block image"><figure><img src="' + b.src + '" alt="' + esc(b.caption || w.title) +
+        '" draggable="false" loading="lazy" decoding="async">' +
+        (b.caption ? "<figcaption>" + esc(b.caption) + "</figcaption>" : "") + "</figure></div>";
+    }
+    if (b.type === "video") {
+      const v = videoInfo(b.url);
+      return v ? embedHTML(v, b.caption)
+        : '<div class="lb-block text"><p>' + richText(b.url) + "</p></div>";
+    }
+    return textBlockHTML(b.text);
+  };
+
   const paintLightbox = () => {
     const w = works.find((x) => x.id === lbId);
     if (!w) return;
@@ -1598,11 +1742,7 @@
     if (w.link) { link.href = w.link; link.hidden = false; } else { link.hidden = true; }
 
     $("#lbBody").innerHTML = w.blocks.length
-      ? w.blocks.map((b) => b.type === "image"
-          ? '<div class="lb-block image"><figure><img src="' + b.src + '" alt="' + esc(b.caption || w.title) +
-            '" draggable="false" loading="lazy" decoding="async">' +
-            (b.caption ? "<figcaption>" + esc(b.caption) + "</figcaption>" : "") + "</figure></div>"
-          : '<div class="lb-block text"><p>' + esc(b.text) + "</p></div>").join("")
+      ? w.blocks.map((b) => blockHTML(b, w)).join("")
       : '<div class="lb-empty">아직 내용이 없습니다</div>';
 
     const nav = (btn, target) => {
@@ -1930,7 +2070,19 @@
   const addRow = (i) => '<div class="cadd"><span class="rule"></span>' +
     '<button type="button" data-act="addtext" data-i="' + i + '">＋ 글</button>' +
     '<button type="button" data-act="addimage" data-i="' + i + '">＋ 이미지</button>' +
+    '<button type="button" data-act="addvideo" data-i="' + i + '">＋ 영상</button>' +
     '<span class="rule"></span></div>';
+
+  const FMT = [
+    { mark: "**", label: "<b>B</b>", title: "굵게 (Ctrl+B)" },
+    { mark: "*",  label: "<i>I</i>", title: "기울임 (Ctrl+I)" },
+    { mark: "__", label: "<u>U</u>", title: "밑줄 (Ctrl+U)" },
+    { mark: "~~", label: "<s>S</s>", title: "취소선" }
+  ];
+  const fmtBar = (i) => '<div class="fmt">' +
+    FMT.map((f) => '<button type="button" data-fmt="' + f.mark + '" data-i="' + i + '" title="' + f.title +
+      '" aria-label="' + f.title + '">' + f.label + "</button>").join("") +
+    '<span class="tip">선택한 글자에 적용됩니다 · 영상 링크를 한 줄에 붙여넣으면 자동 삽입</span></div>';
 
   const blockRow = (b, i) => {
     const last = draftBlocks.length - 1;
@@ -1943,7 +2095,22 @@
     if (b.type === "text") {
       return '<div class="cblock text">' +
         '<div class="cblock-head"><span class="kind">글</span>' + tools + "</div>" +
+        fmtBar(i) +
         '<textarea data-i="' + i + '" placeholder="이 자리에 들어갈 글을 적어주세요.">' + esc(b.text) + "</textarea>" +
+        "</div>";
+    }
+    if (b.type === "video") {
+      const v = videoInfo(b.url);
+      return '<div class="cblock video">' +
+        '<div class="cblock-head"><span class="kind">영상</span>' + tools + "</div>" +
+        '<input class="vurl" type="url" data-i="' + i + '" value="' + esc(b.url) +
+          '" placeholder="YouTube 또는 Vimeo 주소를 붙여넣으세요" spellcheck="false">' +
+        (v && v.thumb ? '<div class="vthumb"><img src="' + v.thumb + '" alt=""></div>' : "") +
+        '<div class="vstate">' + (b.url
+          ? (v ? '<span class="ok">✓ ' + v.kind + " 영상으로 자동 삽입됩니다</span>"
+               : '<span class="no">인식할 수 없는 주소입니다 — YouTube 또는 Vimeo 주소인지 확인해 주세요</span>')
+          : "<span>주소를 넣으면 자동으로 재생기가 만들어집니다</span>") + "</div>" +
+        '<input class="cap" type="text" data-i="' + i + '" value="' + esc(b.caption) + '" placeholder="캡션 (선택)">' +
         "</div>";
     }
     const n = imgIndexOf(i);
@@ -1972,7 +2139,37 @@
     if (draftCover >= n) draftCover = Math.max(0, n - 1);
   };
 
+  /* Wrap (or unwrap) the current selection in a marker. The textarea is
+     edited in place rather than repainted, so the caret and the scroll
+     position survive. */
+  const applyFmt = (ta, mark) => {
+    const s = ta.selectionStart, e = ta.selectionEnd, L = mark.length;
+    const val = ta.value, before = val.slice(0, s), sel = val.slice(s, e), after = val.slice(e);
+    let next, cs, ce;
+    if (before.endsWith(mark) && after.startsWith(mark)) {
+      next = before.slice(0, -L) + sel + after.slice(L);
+      cs = s - L; ce = e - L;
+    } else if (sel.length >= 2 * L && sel.startsWith(mark) && sel.endsWith(mark)) {
+      next = before + sel.slice(L, -L) + after;
+      cs = s; ce = e - 2 * L;
+    } else {
+      next = before + mark + sel + mark + after;
+      cs = s + L; ce = e + L;
+    }
+    ta.value = next;
+    ta.focus();
+    ta.setSelectionRange(cs, ce);
+    const i = Number(ta.dataset.i);
+    if (draftBlocks[i]) draftBlocks[i].text = next;
+  };
+
   $("#blocks").addEventListener("click", (e) => {
+    const fmt = e.target.closest("[data-fmt]");
+    if (fmt) {
+      const ta = $$('#blocks textarea[data-i="' + fmt.dataset.i + '"]')[0];
+      if (ta) applyFmt(ta, fmt.dataset.fmt);
+      return;
+    }
     const btn = e.target.closest("[data-act]");
     if (!btn) return;
     const i = Number(btn.dataset.i);
@@ -1986,6 +2183,14 @@
       return;
     }
     if (act === "addimage") { insertAt = i; $("#fileInput").click(); return; }
+    if (act === "addvideo") {
+      draftBlocks.splice(i, 0, { type: "video", url: "", caption: "" });
+      paintBlocks();
+      const inputs = $$("#blocks .vurl");
+      const nth = draftBlocks.slice(0, i + 1).filter((b) => b.type === "video").length - 1;
+      if (inputs[nth]) inputs[nth].focus();
+      return;
+    }
     if (act === "del") {
       const wasImage = draftBlocks[i].type === "image";
       const n = imgIndexOf(i);
@@ -2019,10 +2224,46 @@
   };
   $("#blocks").addEventListener("pointerdown", rememberCover, true);
 
+  $("#blocks").addEventListener("keydown", (e) => {
+    if (!(e.metaKey || e.ctrlKey) || e.target.tagName !== "TEXTAREA") return;
+    const mark = { b: "**", i: "*", u: "__" }[e.key.toLowerCase()];
+    if (!mark) return;
+    e.preventDefault();
+    applyFmt(e.target, mark);
+  });
+
+  /* Update just the status line of a video row; a full repaint would pull
+     the caret out of the field the moment a URL is pasted. */
+  const refreshVideoRow = (i) => {
+    const row = $$("#blocks .cblock.video").find((el) => el.querySelector(".vurl") &&
+      Number(el.querySelector(".vurl").dataset.i) === i);
+    if (!row) return;
+    const b = draftBlocks[i];
+    const v = videoInfo(b.url);
+    const state = row.querySelector(".vstate");
+    state.innerHTML = b.url
+      ? (v ? '<span class="ok">✓ ' + v.kind + " 영상으로 자동 삽입됩니다</span>"
+           : '<span class="no">인식할 수 없는 주소입니다 — YouTube 또는 Vimeo 주소인지 확인해 주세요</span>')
+      : "<span>주소를 넣으면 자동으로 재생기가 만들어집니다</span>";
+    let thumb = row.querySelector(".vthumb");
+    if (v && v.thumb) {
+      if (!thumb) {
+        thumb = document.createElement("div");
+        thumb.className = "vthumb";
+        thumb.innerHTML = '<img alt="">';
+        row.insertBefore(thumb, state);
+      }
+      thumb.querySelector("img").src = v.thumb;
+    } else if (thumb) {
+      thumb.remove();
+    }
+  };
+
   $("#blocks").addEventListener("input", (e) => {
     const i = Number(e.target.dataset.i);
     if (Number.isNaN(i) || !draftBlocks[i]) return;
     if (e.target.tagName === "TEXTAREA") draftBlocks[i].text = e.target.value;
+    else if (e.target.classList.contains("vurl")) { draftBlocks[i].url = e.target.value.trim(); refreshVideoRow(i); }
     else if (e.target.classList.contains("cap")) draftBlocks[i].caption = e.target.value;
   });
 
@@ -2059,7 +2300,7 @@
     rememberCover();
     const blocks = draftBlocks
       .map((b) => b.type === "text" ? { type: "text", text: b.text.trim() } : { ...b })
-      .filter((b) => b.type === "image" ? b.src : b.text !== "");
+      .filter((b) => b.type === "image" ? b.src : b.type === "video" ? b.url : b.text !== "");
     const imgs = blocks.filter((b) => b.type === "image");
     const cover = Math.max(0, imgs.findIndex((b) => b.src === coverSrc));
 
