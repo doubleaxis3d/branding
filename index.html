@@ -410,7 +410,10 @@
   .peek-section{
     position:relative;
     z-index:2;
-    height:460px;
+    /* --peek-h is measured off the CTA section at runtime (matchPeekToCta);
+       the clamp is what renders before that lands, and on narrow screens
+       where the CTA grows a stacked form and stops being a useful yardstick. */
+    height:var(--peek-h, clamp(560px, 88vh, 940px));
     width:calc(100% + 10vw);
     margin:90px -5vw -110px;
     overflow:hidden;
@@ -488,6 +491,147 @@
     font-size:8px;
     letter-spacing:.12em;
     text-transform:uppercase;
+  }
+
+
+  /* ===== PEEK VIEWER =========================================
+     A GLB stage sunk into the visitor scene: the model floats in
+     the room, the wall crops the bottom of it, and the animals
+     come up in front of everything at the end of the section.
+     The panel keeps the section's own micro-label vocabulary
+     rather than importing a second UI language. */
+  .peek-viewer{
+    position:absolute;
+    left:0; right:0; top:0; bottom:120px;
+    z-index:0;
+  }
+  .peek-viewer model-viewer{
+    width:100%; height:100%; display:block;
+    background:transparent;
+    --poster-color:transparent;
+    --progress-bar-color:var(--lime);
+    --progress-mask:transparent;
+  }
+  .peek-section .peek-label{ z-index:3; }
+  .pv-btn:focus-visible,
+  .pv-chip:focus-visible{ outline:2px solid var(--lime); outline-offset:2px; }
+
+  /* the pointer readout the hero uses, carried into the stage */
+  .pv-cross{
+    position:absolute; inset:0; z-index:2;
+    opacity:0; transition:opacity .25s ease;
+    pointer-events:none;
+  }
+  .peek-viewer.is-tracking .pv-cross{ opacity:.42; }
+  .pv-cross i{ position:absolute; background:var(--lime); }
+  .pv-cross .v{ top:0; bottom:0; width:1px; }
+  .pv-cross .h{ left:0; right:0; height:1px; }
+
+  .pv-read{
+    position:absolute; right:5vw; top:38px; z-index:3;
+    text-align:right; line-height:1.95;
+    font-size:9px; letter-spacing:.14em; text-transform:uppercase;
+    color:rgba(244,244,242,.40);
+    pointer-events:none;
+  }
+  .pv-read b{
+    font-weight:400; color:rgba(244,244,242,.86);
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* Left and right ends only: the two animal windows own the middle
+     35–65% of the wall, so the controls stay clear of them. */
+  .pv-foot{
+    position:absolute; left:5vw; right:5vw; bottom:22px; z-index:1;
+    display:flex; align-items:flex-end; justify-content:space-between; gap:24px;
+    pointer-events:none;
+  }
+  .pv-foot > *{ pointer-events:auto; }
+  .pv-id{
+    max-width:32%;
+    font-size:9px; letter-spacing:.14em; text-transform:uppercase;
+    color:rgba(244,244,242,.40); line-height:1.9;
+  }
+  .pv-id .st::before{ content:"+"; color:var(--lime); margin-right:9px; }
+  .pv-id b{
+    display:block; color:var(--white); font-weight:400;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .pv-chips{ display:flex; gap:6px; margin-top:11px; flex-wrap:wrap; }
+  .pv-btns{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; max-width:44%; }
+
+  .pv-btn,.pv-chip{
+    font-family:inherit; letter-spacing:.14em; text-transform:uppercase;
+    background:transparent; color:rgba(244,244,242,.7);
+    border:1px solid var(--line); cursor:pointer;
+    transition:border-color .35s ease, color .35s ease, background .35s ease;
+  }
+  .pv-btn{ font-size:9px; padding:7px 12px; }
+  .pv-chip{ font-size:8.5px; padding:6px 10px; }
+  .pv-btn:is(:hover,:focus-visible),
+  .pv-chip:is(:hover,:focus-visible){ border-color:var(--lime); color:var(--lime); }
+  .pv-btn.is-on{ background:var(--lime); border-color:var(--lime); color:#0a0a0c; }
+  .pv-chip.is-active{ border-color:var(--lime); color:var(--lime); }
+  .pv-chip.is-default::after{ content:" ◆"; color:var(--lime); }
+  .pv-btn[disabled],.pv-chip[disabled]{ opacity:.32; cursor:not-allowed; }
+  .pv-btn[disabled]:hover{ border-color:var(--line); color:rgba(244,244,242,.7); }
+  .pv-btn.admin{ border-color:rgba(255,47,157,.5); color:rgba(255,47,157,.9); }
+  .pv-btn.admin:is(:hover,:focus-visible){ border-color:var(--pink); color:var(--pink); }
+
+  /* ===== VIEWER ADMIN SHEET ===== */
+  .pv-scrim{
+    position:fixed; inset:0; z-index:900;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+    background:rgba(6,6,8,.82);
+  }
+  .pv-scrim[hidden]{ display:none; }
+  .pv-sheet{
+    width:min(430px,100%);
+    background:#101014;
+    border:1px solid var(--line);
+    padding:30px clamp(20px,3vw,34px) 26px;
+    max-height:88vh; overflow:auto;
+  }
+  .pv-sheet h4{
+    font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+    font-weight:500; margin-bottom:6px;
+  }
+  .pv-sheet .lede{
+    font-size:9.5px; letter-spacing:.06em; line-height:1.9;
+    color:rgba(244,244,242,.45); margin-bottom:24px;
+  }
+  .pv-sheet label span{
+    display:block; font-size:9px; letter-spacing:.14em; text-transform:uppercase;
+    color:rgba(244,244,242,.45); margin-bottom:8px;
+  }
+  .pv-sheet input{
+    width:100%; background:transparent; color:var(--white);
+    border:0; border-bottom:1px solid var(--line);
+    padding:9px 2px; font-family:inherit; font-size:12px; letter-spacing:.04em;
+  }
+  .pv-sheet input:focus{ outline:none; border-bottom-color:var(--lime); }
+  .pv-err{
+    min-height:15px; margin:12px 0 18px;
+    font-size:9px; letter-spacing:.06em; line-height:1.7; color:var(--pink);
+  }
+  .pv-sheet-actions{ display:flex; gap:8px; justify-content:flex-end; }
+  .pv-hint{
+    margin-top:22px; padding-top:16px; border-top:1px solid var(--line);
+    font-size:9px; line-height:1.95; letter-spacing:.03em; color:rgba(244,244,242,.4);
+  }
+  .pv-hint b{ color:rgba(244,244,242,.72); font-weight:400; }
+
+  @media (max-width:560px){
+    .peek-viewer{ bottom:104px; }
+    .pv-read{ display:none; }
+    .pv-foot{ bottom:14px; gap:12px; }
+    .pv-id{ max-width:46%; }
+    .pv-btns{ max-width:52%; }
+    .pv-btn{ padding:6px 9px; font-size:8.5px; letter-spacing:.1em; }
+    .pv-chips{ display:none; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .pv-cross{ transition:none; }
   }
 
   /* ===== CONTACT FORM STATES ===== */
@@ -943,7 +1087,7 @@
     .service.is-open{ justify-content:space-between; }
     .service.is-open .s-body{ opacity:1; transform:none; }
     .hero-tag.left, .hero-tag.right{display:none;}
-    .peek-section{height:380px;}
+    .peek-section{height:clamp(430px, 116vw, 620px);}
     .statement-copy{ --stmt-bleed:150px; }
     /* the example text wraps to more lines on a narrow column */
     .field.msg textarea{ min-height:284px; }
@@ -1250,6 +1394,42 @@
   <!-- CURIOUS VISITORS -->
   <section class="peek-section" aria-label="A curious rabbit and lynx peeking over a wall">
     <div class="peek-label">Tiny visitors detected</div>
+
+    <!-- 3D STAGE — the model the visitors have come to look at -->
+    <div class="peek-viewer" id="peekViewer">
+      <model-viewer id="pvStage"
+                    camera-controls disable-zoom touch-action="pan-y" interaction-prompt="none"
+                    shadow-intensity="0.85" exposure="1.15" environment-image="neutral"
+                    min-field-of-view="10deg" max-field-of-view="50deg"
+                    alt="Interactive 3D model on the studio stage"></model-viewer>
+
+      <div class="pv-cross" aria-hidden="true"><i class="v" id="pvCrossV"></i><i class="h" id="pvCrossH"></i></div>
+
+      <div class="pv-read" aria-hidden="true">
+        X <b id="pvX">0.00</b> &nbsp; Y <b id="pvY">0.00</b><br>
+        Axis &theta; <b id="pvTheta">0</b>&deg; &nbsp; &phi; <b id="pvPhi">0</b>&deg;<br>
+        Frame <b id="pvFrame">&mdash;</b>
+      </div>
+
+      <div class="pv-foot">
+        <div class="pv-id">
+          <span class="st" id="pvStatus">Standby</span>
+          <b id="pvName">&mdash;</b>
+          <div class="pv-chips" id="pvChips"></div>
+        </div>
+        <div class="pv-btns">
+          <button class="pv-btn is-on" type="button" id="pvSpin">Auto-rotate</button>
+          <button class="pv-btn" type="button" id="pvPlay" disabled>Play</button>
+          <button class="pv-btn" type="button" id="pvReset">Reset</button>
+          <button class="pv-btn" type="button" id="pvPublish" hidden>Publish .glb</button>
+          <button class="pv-btn" type="button" id="pvDefault" hidden>Set default</button>
+          <button class="pv-btn" type="button" id="pvDelete" hidden>Delete</button>
+          <button class="pv-btn admin" type="button" id="pvAuth">Admin</button>
+        </div>
+      </div>
+      <input type="file" id="pvFile" accept=".glb,.gltf,model/gltf-binary" hidden>
+    </div>
+
     <div class="peek-animal-window peek-rabbit-window">
       <img class="peek-animal peek-rabbit" src="assets/img/peek-rabbit.png" alt="Hand-drawn rabbit resting its paws on a wall">
     </div>
@@ -1529,15 +1709,57 @@
       setTimeout(() => title.classList.add("settled"), 1700);
     }
 
-    /* curious visitors */
+    /* Curious visitors.
+
+       The section is now a 3D stage the visitors are looking at, so they
+       arrive last: the reveal is keyed to the section's bottom edge rather
+       than to the section entering the frame. The animals come up over the
+       wall once that edge crosses the upper part of the viewport — i.e. as
+       the section is on its way out — and drop back down if it is scrolled
+       away from. The gap between the two thresholds is what keeps them from
+       flickering when a scroll settles right on the line. */
     const peekSection = document.querySelector(".peek-section");
     if (peekSection) {
-      if ("IntersectionObserver" in window) {
-        new IntersectionObserver(([entry]) => {
-          peekSection.classList.toggle("is-visible", entry.isIntersecting);
-        }, { threshold:.28, rootMargin:"0px 0px -8% 0px" }).observe(peekSection);
-      } else {
-        peekSection.classList.add("is-visible");
+      const SHOW_AT = .58;   /* bottom edge above 58% of the viewport: up they come */
+      const HIDE_AT = .76;   /* back below 76%: down they go */
+      let up = false;
+
+      const peekTick = () => {
+        const rect = peekSection.getBoundingClientRect();
+        const vh = window.innerHeight || document.documentElement.clientHeight;
+        const edge = rect.bottom / vh;
+        if (!up && edge <= SHOW_AT && rect.bottom > 0) up = true;
+        else if (up && (edge > HIDE_AT || rect.bottom <= 0)) up = false;
+        peekSection.classList.toggle("is-visible", up);
+      };
+
+      let peekQueued = false;
+      const onPeekScroll = () => {
+        if (peekQueued) return;
+        peekQueued = true;
+        requestAnimationFrame(() => { peekQueued = false; peekTick(); });
+      };
+      window.addEventListener("scroll", onPeekScroll, { passive:true });
+      window.addEventListener("resize", onPeekScroll);
+      peekTick();
+
+      /* The stage is sized to the contact section, so the two dark blocks at
+         either end of the page read as a matched pair. Wide screens only:
+         below that the CTA stacks its form and stops being a useful yardstick. */
+      const ctaSection = document.querySelector(".cta");
+      if (ctaSection) {
+        const matchPeekToCta = () => {
+          if (window.innerWidth < 900) {
+            peekSection.style.removeProperty("--peek-h");
+            return;
+          }
+          const h = Math.round(ctaSection.getBoundingClientRect().height);
+          peekSection.style.setProperty("--peek-h", Math.max(560, Math.min(h, 1000)) + "px");
+        };
+        matchPeekToCta();
+        window.addEventListener("resize", matchPeekToCta);
+        window.addEventListener("load", matchPeekToCta);
+        if ("ResizeObserver" in window) new ResizeObserver(matchPeekToCta).observe(ctaSection);
       }
     }
   })();
@@ -1583,7 +1805,7 @@
     let speed = 0;
 
     const cursorState = (target) => {
-      const interactive = target.closest("a,button,.service,.peek-section");
+      const interactive = target.closest("a,button,.service,.peek-viewer,.peek-section");
       let text = "";
       let color = "#d7ff3a";
 
@@ -1593,6 +1815,9 @@
         if (interactive.classList.contains("s2")) color = "#ff2f9d";
         if (interactive.classList.contains("s3")) color = "#d7ff3a";
         if (interactive.classList.contains("s4")) color = "#d7ff3a";
+      } else if (interactive?.classList.contains("peek-viewer")) {
+        text = "Orbit";
+        color = "#d7ff3a";
       } else if (interactive?.classList.contains("peek-section")) {
         text = "Hello";
         color = "#ff2f9d";
@@ -2193,6 +2418,603 @@
     }, { passive:true });
     stickyPane.addEventListener("pointerleave", () => guides.classList.remove("on"));
   }
+})();
+</script>
+
+<!-- viewer admin: verified against GitHub, so nothing secret lives in this file -->
+<div class="pv-scrim" id="pvScrim" hidden>
+  <div class="pv-sheet" role="dialog" aria-modal="true" aria-labelledby="pvSheetTitle">
+    <h4 id="pvSheetTitle">Studio access</h4>
+    <p class="lede">Changing the model on the stage commits to the repository that serves this site. Sign in with a token that can write to it.</p>
+    <label>
+      <span>GitHub personal access token</span>
+      <input type="password" id="pvToken" autocomplete="off" spellcheck="false" placeholder="github_pat_&hellip;">
+    </label>
+    <p class="pv-err" id="pvErr" role="status" aria-live="polite"></p>
+    <div class="pv-sheet-actions">
+      <button class="pv-btn" type="button" id="pvCancel">Cancel</button>
+      <button class="pv-btn admin" type="button" id="pvVerify">Verify token</button>
+    </div>
+    <p class="pv-hint">
+      Use a <b>fine-grained</b> token limited to this one repository, with <b>Contents: Read and write</b> and a short expiry.
+      It is held in this tab only &mdash; never written to the page, to storage, or to the repo &mdash; and closing the tab signs you out.
+    </p>
+  </div>
+</div>
+
+<!-- model-viewer: the vendored copy first, the CDN only if it is missing -->
+<script type="module">
+  import("./assets/js/model-viewer.min.js")
+    .catch(() => import("https://cdnjs.cloudflare.com/ajax/libs/model-viewer/4.1.0/model-viewer.min.js"));
+</script>
+
+<script>
+/* ===== PEEK VIEWER =========================================================
+   A GLB stage inside the visitor scene.
+
+   Reading is public: the library is a manifest committed beside the models,
+   so a visitor needs nothing but the page. Writing is gated on a GitHub token
+   with push access to this repository — the same permission that lets someone
+   change the site at all — so there is no shared password sitting in this file
+   waiting to leak. The token stays in the tab and is never stored.
+========================================================================== */
+(() => {
+  const REPO = {
+    owner : "doubleaxis3d",
+    name  : "branding",        // repo serving this page; a user site would be "doubleaxis3d.github.io"
+    branch: "main",
+    dir   : "assets/models"    // folder in the repo holding the .glb files
+  };
+  const MAX_UPLOAD = 25 * 1024 * 1024;      // the Contents API gets unhappy past this
+  const MANIFEST = REPO.dir + "/manifest.json";
+  const RAW = p => `https://raw.githubusercontent.com/${REPO.owner}/${REPO.name}/${REPO.branch}/${p}`;
+
+  const stage = document.getElementById("peekViewer");
+  const mv = document.getElementById("pvStage");
+  if (!stage || !mv) return;
+
+  const $ = (id) => document.getElementById(id);
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  let token = null, user = null;
+  let models = [], activeId = null, defaultPath = null;
+  let sameOrigin = true;
+
+  /* --- DOUBLE AXIS 001: the demo model, generated in code and written
+     straight to GLB, so the stage is never empty on a fresh repo ------- */
+  function buildDemoGLB(){
+    const keep = p => p;
+    const tilt = p => [p[0], p[2], -p[1]];
+
+    function torus(R,r,seg,side,x){
+      const pos=[],nrm=[],idx=[];
+      for(let i=0;i<=seg;i++){
+        const u=i/seg*Math.PI*2, cu=Math.cos(u), su=Math.sin(u);
+        for(let j=0;j<=side;j++){
+          const v=j/side*Math.PI*2, cv=Math.cos(v), sv=Math.sin(v);
+          pos.push(...x([(R+r*cv)*cu, r*sv, (R+r*cv)*su]));
+          nrm.push(...x([cv*cu, sv, cv*su]));
+        }
+      }
+      for(let i=0;i<seg;i++) for(let j=0;j<side;j++){
+        const a=i*(side+1)+j, b=a+side+1;
+        idx.push(a,b,a+1,b,b+1,a+1);
+      }
+      return {pos,nrm,idx};
+    }
+    function sphere(R,seg,ring){
+      const pos=[],nrm=[],idx=[];
+      for(let i=0;i<=ring;i++){
+        const phi=i/ring*Math.PI, sp=Math.sin(phi), cp=Math.cos(phi);
+        for(let j=0;j<=seg;j++){
+          const th=j/seg*Math.PI*2, n=[sp*Math.cos(th), cp, sp*Math.sin(th)];
+          nrm.push(...n); pos.push(n[0]*R,n[1]*R,n[2]*R);
+        }
+      }
+      for(let i=0;i<ring;i++) for(let j=0;j<seg;j++){
+        const a=i*(seg+1)+j, b=a+seg+1;
+        idx.push(a,b,a+1,b,b+1,a+1);
+      }
+      return {pos,nrm,idx};
+    }
+    function ticks(R,count){
+      const pos=[],nrm=[],idx=[];
+      const faces=[
+        [[0,0,1],[[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]]],
+        [[0,0,-1],[[1,-1,-1],[-1,-1,-1],[-1,1,-1],[1,1,-1]]],
+        [[1,0,0],[[1,-1,1],[1,-1,-1],[1,1,-1],[1,1,1]]],
+        [[-1,0,0],[[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1]]],
+        [[0,1,0],[[-1,1,1],[1,1,1],[1,1,-1],[-1,1,-1]]],
+        [[0,-1,0],[[-1,-1,-1],[1,-1,-1],[1,-1,1],[-1,-1,1]]]
+      ];
+      for(let t=0;t<count;t++){
+        const a=t/count*Math.PI*2, ca=Math.cos(a), sa=Math.sin(a);
+        const len=(t%(count/4)===0)?0.11:0.05, th=0.012;
+        for(const [n,quad] of faces){
+          const base=pos.length/3;
+          for(const v of quad){
+            const px=R+0.13+v[0]*len, py=v[1]*th, pz=v[2]*th;
+            pos.push(px*ca-pz*sa, py, px*sa+pz*ca);
+            nrm.push(n[0]*ca-n[2]*sa, n[1], n[0]*sa+n[2]*ca);
+          }
+          idx.push(base,base+1,base+2,base,base+2,base+3);
+        }
+      }
+      return {pos,nrm,idx};
+    }
+
+    const parts=[
+      {geo:torus(1.0,0.085,128,20,keep), mat:0, name:"ring_y"},
+      {geo:torus(0.72,0.085,128,20,tilt),mat:1, name:"ring_x"},
+      {geo:sphere(0.34,48,32),           mat:2, name:"core"},
+      {geo:ticks(1.0,36),                mat:3, name:"graduations"}
+    ];
+
+    const chunks=[], views=[], accessors=[], meshes=[], nodes=[];
+    let offset=0;
+    const push=(arr,target)=>{
+      const bytes=new Uint8Array(arr.buffer,arr.byteOffset,arr.byteLength);
+      const pad=(4-(offset%4))%4;
+      if(pad){ chunks.push(new Uint8Array(pad)); offset+=pad; }
+      chunks.push(bytes);
+      const v={buffer:0,byteOffset:offset,byteLength:bytes.byteLength};
+      if(target) v.target=target;
+      views.push(v); offset+=bytes.byteLength;
+      return views.length-1;
+    };
+
+    parts.forEach((part,i)=>{
+      const fp=new Float32Array(part.geo.pos), fn=new Float32Array(part.geo.nrm), ui=new Uint16Array(part.geo.idx);
+      const min=[Infinity,Infinity,Infinity], max=[-Infinity,-Infinity,-Infinity];
+      for(let k=0;k<fp.length;k+=3) for(let c=0;c<3;c++){
+        if(fp[k+c]<min[c]) min[c]=fp[k+c];
+        if(fp[k+c]>max[c]) max[c]=fp[k+c];
+      }
+      const vp=push(fp,34962), vn=push(fn,34962), vi=push(ui,34963);
+      const aP=accessors.push({bufferView:vp,componentType:5126,count:fp.length/3,type:"VEC3",min,max})-1;
+      const aN=accessors.push({bufferView:vn,componentType:5126,count:fn.length/3,type:"VEC3"})-1;
+      const aI=accessors.push({bufferView:vi,componentType:5123,count:ui.length,type:"SCALAR"})-1;
+      meshes.push({name:part.name,primitives:[{attributes:{POSITION:aP,NORMAL:aN},indices:aI,material:part.mat}]});
+      nodes.push({name:part.name,mesh:i,rotation:[0,0,0,1]});
+    });
+
+    const times=new Float32Array([0,1.5,3,4.5,6]);
+    const spin=axis=>{
+      const q=[];
+      for(let s=0;s<5;s++){
+        const h=(s/4)*Math.PI, sn=Math.sin(h);
+        q.push(axis[0]*sn,axis[1]*sn,axis[2]*sn,Math.cos(h));
+      }
+      return new Float32Array(q);
+    };
+    const aT=accessors.push({bufferView:push(times),componentType:5126,count:5,type:"SCALAR",min:[0],max:[6]})-1;
+    const mk=axis=>accessors.push({bufferView:push(spin(axis)),componentType:5126,count:5,type:"VEC4"})-1;
+    const aRy=mk([0,1,0]), aRx=mk([1,0,0]);
+
+    const json={
+      asset:{version:"2.0",generator:"Double Axis Viewer — procedural demo"},
+      scene:0,
+      scenes:[{name:"double_axis_001",nodes:[0,1,2,3]}],
+      nodes, meshes, accessors,
+      bufferViews:views,
+      buffers:[{byteLength:offset}],
+      materials:[
+        {name:"polished_steel",pbrMetallicRoughness:{baseColorFactor:[0.82,0.82,0.80,1],metallicFactor:1,roughnessFactor:0.22}},
+        {name:"signal_blue",   pbrMetallicRoughness:{baseColorFactor:[0.122,0.208,0.839,1],metallicFactor:0.35,roughnessFactor:0.3}},
+        {name:"bone_matte",    pbrMetallicRoughness:{baseColorFactor:[0.914,0.902,0.874,1],metallicFactor:0.05,roughnessFactor:0.65}},
+        {name:"mark_ink",      pbrMetallicRoughness:{baseColorFactor:[0.60,0.60,0.58,1],metallicFactor:0.8,roughnessFactor:0.35}}
+      ],
+      animations:[{
+        name:"axis_rotation",
+        samplers:[
+          {input:aT,output:aRy,interpolation:"LINEAR"},
+          {input:aT,output:aRx,interpolation:"LINEAR"}
+        ],
+        channels:[
+          {sampler:0,target:{node:0,path:"rotation"}},
+          {sampler:1,target:{node:1,path:"rotation"}},
+          {sampler:0,target:{node:3,path:"rotation"}}
+        ]
+      }]
+    };
+
+    const jsonBytes=new TextEncoder().encode(JSON.stringify(json));
+    const jsonPad=(4-(jsonBytes.byteLength%4))%4;
+    const binPad=(4-(offset%4))%4;
+    const jsonLen=jsonBytes.byteLength+jsonPad, binLen=offset+binPad;
+
+    const out=new Uint8Array(12+8+jsonLen+8+binLen);
+    const dv=new DataView(out.buffer);
+    dv.setUint32(0,0x46546c67,true); dv.setUint32(4,2,true); dv.setUint32(8,out.byteLength,true);
+    dv.setUint32(12,jsonLen,true);   dv.setUint32(16,0x4e4f534a,true);
+    out.set(jsonBytes,20);
+    out.fill(0x20,20+jsonBytes.byteLength,20+jsonLen);
+    const bs=20+jsonLen;
+    dv.setUint32(bs,binLen,true); dv.setUint32(bs+4,0x004e4942,true);
+    let w=bs+8;
+    for(const c of chunks){ out.set(c,w); w+=c.byteLength; }
+    return out;
+  }
+
+  /* ---------------------------- small helpers ---------------------------- */
+  const fmtSize = (b) => b == null ? "" : b < 1048576 ? Math.round(b / 1024) + " KB" : (b / 1048576).toFixed(2) + " MB";
+  const safeName = (n) => n.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
+  const shortName = (n) => n.replace(/\.(glb|gltf)$/i, "").slice(0, 18);
+  const status = (s) => { $("pvStatus").textContent = s; };
+  const b64text = (s) => btoa(unescape(encodeURIComponent(s)));
+  const fileToB64 = (file) => new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).split(",")[1]);
+    r.onerror = () => rej(new Error("read failed"));
+    r.readAsDataURL(file);
+  });
+
+  /* ------------------------------- GitHub -------------------------------- */
+  async function gh(path, opts = {}){
+    const res = await fetch("https://api.github.com" + path, {
+      ...opts,
+      headers:{
+        "Accept":"application/vnd.github+json",
+        "X-GitHub-Api-Version":"2022-11-28",
+        ...(token ? { "Authorization":"Bearer " + token } : {}),
+        ...(opts.body ? { "Content-Type":"application/json" } : {}),
+        ...(opts.headers || {})
+      }
+    });
+    let data = null;
+    try { data = await res.json(); } catch (e) {}
+    if (!res.ok){
+      const err = new Error((data && data.message) || ("GitHub returned " + res.status));
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+  const contents = (p) => `/repos/${REPO.owner}/${REPO.name}/contents/${p}`;
+
+  async function meta(path){
+    try { return await gh(contents(path) + "?ref=" + REPO.branch); }
+    catch (e){ if (e.status === 404) return null; throw e; }
+  }
+  const putFile = (path, content, message, sha) => gh(contents(path), {
+    method:"PUT",
+    body: JSON.stringify({ message, content, branch: REPO.branch, ...(sha ? { sha } : {}) })
+  });
+  const delFile = (path, sha, message) => gh(contents(path), {
+    method:"DELETE",
+    body: JSON.stringify({ message, sha, branch: REPO.branch })
+  });
+
+  async function writeManifest(){
+    const items = models.filter(m => m.kind === "repo")
+                        .map(({ name, path, sha, size }) => ({ name, path, sha, size }));
+    const current = await meta(MANIFEST);
+    const body = JSON.stringify({ version:1, default: defaultPath || null, items }, null, 2);
+    await putFile(MANIFEST, b64text(body), "viewer: update model manifest", current ? current.sha : undefined);
+  }
+
+  async function readManifest(){
+    const bust = "?t=" + Date.now();
+    try {
+      const r = await fetch(MANIFEST + bust, { cache:"no-store" });
+      if (r.ok){ sameOrigin = true; return await r.json(); }
+    } catch (e) {}
+    try {
+      const r = await fetch(RAW(MANIFEST) + bust, { cache:"no-store" });
+      if (r.ok){ sameOrigin = false; return await r.json(); }
+    } catch (e) {}
+    return null;
+  }
+  const srcFor = (path) => sameOrigin ? path : RAW(path);
+
+  function problem(e){
+    if (e.status === 401) return "Token rejected — check or renew it";
+    if (e.status === 403) return "Token lacks write access to this repo";
+    if (e.status === 404) return "Repo or path not found — check the config";
+    if (e.status === 409) return "The repo moved on — reload and retry";
+    if (!e.status) return "Cannot reach GitHub from here";
+    return e.message || "Request failed";
+  }
+
+  /* ------------------------------ rendering ------------------------------ */
+  function renderChips(){
+    const wrap = $("pvChips");
+    wrap.innerHTML = "";
+    models.forEach((m) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "pv-chip"
+        + (m.id === activeId ? " is-active" : "")
+        + (m.path && m.path === defaultPath ? " is-default" : "");
+      b.textContent = shortName(m.name);
+      b.title = m.name + (m.size ? " · " + fmtSize(m.size) : "");
+      b.addEventListener("click", () => show(m.id));
+      wrap.appendChild(b);
+    });
+  }
+
+  function renderAdmin(){
+    const on = !!token;
+    const m = models.find(x => x.id === activeId);
+    const isRepo = !!(m && m.kind === "repo");
+    $("pvAuth").textContent = on ? "Sign out" : "Admin";
+    $("pvPublish").hidden = !on;
+    $("pvDefault").hidden = !on;
+    $("pvDelete").hidden = !on;
+    $("pvDefault").disabled = !isRepo || (m && m.path === defaultPath);
+    $("pvDelete").disabled = !isRepo;
+    $("pvPublish").textContent = on ? "Publish .glb" : "Publish";
+  }
+
+  async function show(id){
+    const m = models.find(x => x.id === id);
+    if (!m) return;
+    activeId = id;
+    status("Loading");
+    mv.src = m.src;
+    $("pvName").textContent = m.name;
+    renderChips();
+    renderAdmin();
+  }
+
+  /* ------------------------------- viewer -------------------------------- */
+  mv.addEventListener("progress", (e) => {
+    const p = e.detail.totalProgress;
+    if (p < 1) status("Loading " + Math.round(p * 100) + "%");
+  });
+
+  mv.addEventListener("load", () => {
+    status("Live");
+    const clips = mv.availableAnimations || [];
+    $("pvPlay").disabled = clips.length === 0;
+    $("pvPlay").textContent = "Play";
+    $("pvPlay").classList.remove("is-on");
+    mv.pause();
+    stopFrames();
+    readOrbit();
+  });
+
+  mv.addEventListener("error", () => {
+    status("Failed");
+    $("pvName").textContent = "Could not read that file";
+  });
+
+  let rafId = null;
+  function readOrbit(){
+    try {
+      const o = mv.getCameraOrbit();
+      let t = (o.theta * 180 / Math.PI) % 360;
+      if (t < 0) t += 360;
+      $("pvTheta").textContent = Math.round(t);
+      $("pvPhi").textContent = Math.round(o.phi * 180 / Math.PI);
+    } catch (e) {}
+  }
+  mv.addEventListener("camera-change", () => {
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => { rafId = null; readOrbit(); });
+  });
+
+  stage.addEventListener("pointermove", (e) => {
+    const r = stage.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    $("pvX").textContent = x.toFixed(2);
+    $("pvY").textContent = y.toFixed(2);
+    $("pvCrossV").style.left = (x * r.width) + "px";
+    $("pvCrossH").style.top = (y * r.height) + "px";
+    stage.classList.add("is-tracking");
+  });
+  stage.addEventListener("pointerleave", () => stage.classList.remove("is-tracking"));
+
+  /* ------------------------------ controls ------------------------------- */
+  $("pvSpin").addEventListener("click", (e) => {
+    const on = mv.hasAttribute("auto-rotate");
+    if (on) mv.removeAttribute("auto-rotate"); else mv.setAttribute("auto-rotate", "");
+    e.currentTarget.classList.toggle("is-on", !on);
+  });
+  /* the hero's frame counter, borrowed for the clip that is running */
+  let frameTimer = null;
+  const startFrames = () => {
+    let n = 0;
+    frameTimer = setInterval(() => {
+      n = (n + 1) % 1000;
+      $("pvFrame").textContent = String(n).padStart(3, "0");
+    }, 1000 / 24);
+  };
+  const stopFrames = () => {
+    clearInterval(frameTimer);
+    frameTimer = null;
+    $("pvFrame").textContent = "\u2014";
+  };
+
+  $("pvPlay").addEventListener("click", (e) => {
+    if (mv.paused){
+      mv.play();
+      e.currentTarget.textContent = "Pause";
+      e.currentTarget.classList.add("is-on");
+      startFrames();
+    } else {
+      mv.pause();
+      e.currentTarget.textContent = "Play";
+      e.currentTarget.classList.remove("is-on");
+      stopFrames();
+    }
+  });
+  $("pvReset").addEventListener("click", () => {
+    mv.cameraOrbit = "0deg 76deg auto";
+    mv.fieldOfView = "auto";
+    mv.cameraTarget = "auto auto auto";
+    readOrbit();
+  });
+
+  /* ------------------------------- publish ------------------------------- */
+  $("pvPublish").addEventListener("click", () => $("pvFile").click());
+  $("pvFile").addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    if (f) publish(f);
+    e.target.value = "";
+  });
+
+  ["dragenter","dragover"].forEach(t => stage.addEventListener(t, (e) => {
+    e.preventDefault();
+    if (token) stage.style.outline = "1px dashed " + getComputedStyle(document.body).getPropertyValue("--lime");
+  }));
+  ["dragleave","drop"].forEach(t => stage.addEventListener(t, (e) => {
+    e.preventDefault();
+    stage.style.outline = "";
+  }));
+  stage.addEventListener("drop", (e) => {
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    if (!token){ status("Admin sign-in required"); return; }
+    publish(f);
+  });
+
+  async function publish(file){
+    if (!token){ status("Admin sign-in required"); return; }
+    if (!/\.(glb|gltf)$/i.test(file.name)){ status("Only .glb or .gltf"); return; }
+    if (file.size > MAX_UPLOAD){ status("Over 25 MB — too large to publish"); return; }
+
+    const name = safeName(file.name) || ("model-" + Date.now() + ".glb");
+    const path = REPO.dir + "/" + name;
+
+    // show it immediately from the local file while the commit is in flight
+    const rec = { id:path, name, size:file.size, path, kind:"repo", src:URL.createObjectURL(file) };
+    const at = models.findIndex(m => m.id === path);
+    if (at >= 0) models.splice(at, 1, rec); else models.push(rec);
+    await show(path);
+
+    status("Publishing");
+    try {
+      const existing = await meta(path);
+      const res = await putFile(path, await fileToB64(file), "viewer: publish " + name, existing ? existing.sha : undefined);
+      rec.sha = res.content.sha;
+      if (!defaultPath) defaultPath = path;
+      await writeManifest();
+      status("Published");
+      renderChips(); renderAdmin();
+    } catch (e){
+      models = models.filter(m => m.id !== path);
+      status(problem(e));
+      renderChips();
+      if (models.length) await show(models[0].id);
+    }
+  }
+
+  $("pvDelete").addEventListener("click", async () => {
+    const m = models.find(x => x.id === activeId);
+    if (!token || !m || m.kind !== "repo") return;
+    if (!confirm("Delete " + m.name + " from the repository?")) return;
+    status("Deleting");
+    try {
+      const current = await meta(m.path);
+      if (current) await delFile(m.path, current.sha, "viewer: remove " + m.name);
+      models = models.filter(x => x.id !== m.id);
+      if (defaultPath === m.path){
+        const next = models.find(x => x.kind === "repo");
+        defaultPath = next ? next.path : null;
+      }
+      await writeManifest();
+      await show(models[0].id);
+      status("Removed");
+    } catch (e){ status(problem(e)); }
+  });
+
+  $("pvDefault").addEventListener("click", async () => {
+    const m = models.find(x => x.id === activeId);
+    if (!token || !m || m.kind !== "repo") return;
+    const prev = defaultPath;
+    defaultPath = m.path;
+    renderChips(); renderAdmin();
+    try { await writeManifest(); status("Set as default"); }
+    catch (e){ defaultPath = prev; renderChips(); renderAdmin(); status(problem(e)); }
+  });
+
+  /* ------------------------------ admin sheet ---------------------------- */
+  const scrim = $("pvScrim");
+  const open = () => { scrim.hidden = false; $("pvErr").textContent = ""; $("pvToken").value = ""; setTimeout(() => $("pvToken").focus(), 40); };
+  const close = () => { scrim.hidden = true; $("pvToken").value = ""; };
+
+  $("pvAuth").addEventListener("click", () => {
+    if (token){ token = null; user = null; renderAdmin(); status("Signed out"); }
+    else open();
+  });
+  $("pvCancel").addEventListener("click", close);
+  $("pvVerify").addEventListener("click", verify);
+  $("pvToken").addEventListener("keydown", (e) => { if (e.key === "Enter") verify(); });
+  scrim.addEventListener("click", (e) => { if (e.target === scrim) close(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !scrim.hidden) close(); });
+
+  async function verify(){
+    const t = $("pvToken").value.trim();
+    if (!t){ $("pvErr").textContent = "Paste a token first."; return; }
+    $("pvVerify").disabled = true;
+    $("pvErr").textContent = "Checking with GitHub…";
+    token = t;
+    try {
+      const me = await gh("/user");
+      const repo = await gh(`/repos/${REPO.owner}/${REPO.name}`);
+      if (!repo.permissions || !repo.permissions.push)
+        throw Object.assign(new Error("This token can read the repository but not write to it. Grant Contents: Read and write."), { status:403 });
+      user = me.login;
+      close();
+      renderAdmin();
+      status("Signed in as " + user);
+      await loadLibrary();
+    } catch (e){
+      token = null; user = null;
+      let msg = e.message || "Verification failed.";
+      if (e.status === 401) msg = "GitHub rejected that token.";
+      if (e.status === 404) msg = `The token is valid but cannot see ${REPO.owner}/${REPO.name}. Check the repo name in the config block and the token's repository access.`;
+      if (!e.status) msg = "Could not reach api.github.com. Publishing only works on the live domain, not from a local file.";
+      $("pvErr").textContent = msg;
+    } finally {
+      $("pvVerify").disabled = false;
+    }
+  }
+
+  /* -------------------------------- boot --------------------------------- */
+  let demo = null;
+  function makeDemo(){
+    if (demo) return demo;
+    const bytes = buildDemoGLB();
+    demo = {
+      id:"demo",
+      name:"DOUBLE-AXIS-001.glb",
+      size:bytes.byteLength,
+      kind:"demo",
+      src:URL.createObjectURL(new Blob([bytes], { type:"model/gltf-binary" }))
+    };
+    return demo;
+  }
+
+  async function loadLibrary(){
+    const manifest = await readManifest();
+    const items = (manifest && Array.isArray(manifest.items) ? manifest.items : []).map(it => ({
+      id: it.path, name: it.name, size: it.size, sha: it.sha, path: it.path,
+      kind: "repo", src: srcFor(it.path)
+    }));
+    defaultPath = (manifest && manifest.default) || (items[0] && items[0].path) || null;
+    models = [makeDemo(), ...items];
+    renderChips();
+    renderAdmin();
+    const first = models.find(m => m.path === defaultPath) || models[0];
+    await show(first.id);
+  }
+
+  if (reduce){
+    mv.removeAttribute("auto-rotate");
+    $("pvSpin").classList.remove("is-on");
+  } else {
+    mv.setAttribute("auto-rotate", "");
+  }
+
+  customElements.whenDefined("model-viewer")
+    .then(loadLibrary)
+    .catch(() => status("Renderer unavailable"));
+
+  setTimeout(() => {
+    if (!customElements.get("model-viewer")) status("Renderer unavailable");
+  }, 9000);
 })();
 </script>
 </body>
