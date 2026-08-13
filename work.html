@@ -479,12 +479,24 @@
   /* ===== OVERLAYS (lightbox / modals) ===== */
   .overlay{
     position:fixed; inset:0; z-index:200; display:none;
-    background:rgba(6,6,8,.92); backdrop-filter:blur(7px);
     overflow-y:auto; overscroll-behavior:contain;
   }
   .overlay.on{display:block;}
+  /* The dim + blur used to sit on .overlay itself. `backdrop-filter` makes
+     an element a containing block for its fixed-position descendants, so
+     the close button stopped being fixed to the viewport and became
+     absolute inside this scrolling box — on a long project it simply
+     scrolled up out of reach. Moving the effect to a pseudo-element of its
+     own leaves .overlay plain, and the button is fixed again. */
+  .overlay::before{
+    content:""; position:fixed; inset:0; z-index:0;
+    background:rgba(6,6,8,.92); backdrop-filter:blur(7px);
+    pointer-events:none;
+  }
+  /* the close button keeps its own fixed positioning */
+  .overlay > *:not(.overlay-close){position:relative; z-index:1;}
   .overlay-close{
-    position:fixed; right:clamp(14px,3vw,34px); top:clamp(14px,3vw,28px); z-index:6;
+    position:fixed; right:clamp(14px,3vw,34px); top:clamp(14px,3vw,28px); z-index:10;
     width:44px; height:44px; display:grid; place-items:center;
     background:rgba(10,10,12,.7); border:1px solid var(--line); color:var(--white);
     cursor:pointer; transition:background .22s,color .22s,border-color .22s;
