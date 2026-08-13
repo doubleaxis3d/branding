@@ -42,6 +42,11 @@
     ],
     "blocks": [
       {
+        "type": "image",
+        "src": "assets/work/brawlimas-in-starfield-2fff9a56.png",
+        "caption": ""
+      },
+      {
         "type": "video",
         "url": "https://vimeo.com/1135339302",
         "caption": ""
@@ -51,7 +56,9 @@
         "text": "**Doubleaxis **produced media content for Supercell's offline event, \"Merry Brawlimas in Starfield.”\nBuilding on its extensive experience operating regular pop-up events and merchandise shops at Starfield Hanam, Hivelab partnered once again as a trusted collaborator, following the previous \"Showdown in Starfield\" project.\nFor this project, **Doubleaxis** made active use of Starfield Hanam's media tower and panorama screens to amplify the Christmas atmosphere throughout the venue, and planned, directed, and produced immersive content that allowed visitors to more deeply experience the Brawl Stars Christmas event within the space."
       }
     ],
-    "images": [],
+    "images": [
+      "assets/work/brawlimas-in-starfield-2fff9a56.png"
+    ],
     "cover": 0,
     "featured": false,
     "published": true,
