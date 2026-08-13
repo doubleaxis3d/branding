@@ -142,7 +142,26 @@
     transition:transform .55s cubic-bezier(.2,.85,.25,1);
   }
   header.tuck{transform:translateY(-130%);}
-  body.locked header{mix-blend-mode:normal;}
+
+  /* While a project (or a dialog) is open, the page chrome has to get out of
+     the way. All of it sits below the overlay in the stacking order, but the
+     overlay is only 92% opaque, so the fixed bits — which do not scroll and
+     therefore stay exactly where they are — ghost through and land right on
+     top of the project title. Hiding them is also simply correct: the site
+     nav is not usable while a modal is up, and Escape or the X is the way
+     out. Opacity rather than display, so nothing reflows on the way in or
+     out. */
+  body.locked header,
+  body.locked .scroll-progress,
+  body.locked .to-top,
+  body.locked .controls,
+  body.locked .admin-bar{
+    opacity:0 !important;
+    pointer-events:none !important;
+  }
+  body.locked header{mix-blend-mode:normal; transition:opacity .22s ease;}
+  body.locked .controls,
+  body.locked .admin-bar{transition:opacity .22s ease;}
   .logo{font-family:'Anton'; font-weight:400; font-size:18px; letter-spacing:0.05em; text-transform:uppercase;}
   nav ul{display:flex; gap:34px; list-style:none;}
   nav a{font-size:12px; text-transform:uppercase; letter-spacing:0.1em; opacity:0.85;}
@@ -507,7 +526,7 @@
   /* lightbox — one flowing document, blocks in the order they were written */
   .lb-doc{
     width:min(1080px,92%); margin:0 auto;
-    padding:clamp(64px,8vw,104px) 0 clamp(60px,8vw,110px);
+    padding:clamp(76px,9vw,112px) 0 clamp(60px,8vw,110px);
   }
   .lb-head{padding-bottom:clamp(26px,3.4vw,44px); border-bottom:1px solid var(--line);}
   .lb-index{font-size:10px; letter-spacing:.16em; color:var(--lime); text-transform:uppercase;}
