@@ -513,8 +513,7 @@
     --progress-mask:transparent;
   }
   .peek-section .peek-label{ z-index:3; }
-  .pv-btn:focus-visible,
-  .pv-chip:focus-visible{ outline:2px solid var(--lime); outline-offset:2px; }
+  .pv-btn:focus-visible{ outline:2px solid var(--lime); outline-offset:2px; }
 
   /* the pointer readout the hero uses, carried into the stage */
   .pv-cross{
@@ -557,23 +556,17 @@
     display:block; color:var(--white); font-weight:400;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
-  .pv-chips{ display:flex; gap:6px; margin-top:11px; flex-wrap:wrap; }
   .pv-btns{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; max-width:44%; }
 
-  .pv-btn,.pv-chip{
-    font-family:inherit; letter-spacing:.14em; text-transform:uppercase;
+  .pv-btn{
+    font-family:inherit; font-size:9px; letter-spacing:.14em; text-transform:uppercase;
     background:transparent; color:rgba(244,244,242,.7);
-    border:1px solid var(--line); cursor:pointer;
+    border:1px solid var(--line); padding:7px 12px; cursor:pointer;
     transition:border-color .35s ease, color .35s ease, background .35s ease;
   }
-  .pv-btn{ font-size:9px; padding:7px 12px; }
-  .pv-chip{ font-size:8.5px; padding:6px 10px; }
-  .pv-btn:is(:hover,:focus-visible),
-  .pv-chip:is(:hover,:focus-visible){ border-color:var(--lime); color:var(--lime); }
+  .pv-btn:is(:hover,:focus-visible){ border-color:var(--lime); color:var(--lime); }
   .pv-btn.is-on{ background:var(--lime); border-color:var(--lime); color:#0a0a0c; }
-  .pv-chip.is-active{ border-color:var(--lime); color:var(--lime); }
-  .pv-chip.is-default::after{ content:" ◆"; color:var(--lime); }
-  .pv-btn[disabled],.pv-chip[disabled]{ opacity:.32; cursor:not-allowed; }
+  .pv-btn[disabled]{ opacity:.32; cursor:not-allowed; }
   .pv-btn[disabled]:hover{ border-color:var(--line); color:rgba(244,244,242,.7); }
   .pv-btn.admin{ border-color:rgba(255,47,157,.5); color:rgba(255,47,157,.9); }
   .pv-btn.admin:is(:hover,:focus-visible){ border-color:var(--pink); color:var(--pink); }
@@ -628,7 +621,6 @@
     .pv-id{ max-width:46%; }
     .pv-btns{ max-width:52%; }
     .pv-btn{ padding:6px 9px; font-size:8.5px; letter-spacing:.1em; }
-    .pv-chips{ display:none; }
   }
   @media (prefers-reduced-motion:reduce){
     .pv-cross{ transition:none; }
@@ -1415,14 +1407,12 @@
         <div class="pv-id">
           <span class="st" id="pvStatus">Standby</span>
           <b id="pvName">&mdash;</b>
-          <div class="pv-chips" id="pvChips"></div>
         </div>
         <div class="pv-btns">
           <button class="pv-btn is-on" type="button" id="pvSpin">Auto-rotate</button>
           <button class="pv-btn" type="button" id="pvPlay" disabled>Play</button>
           <button class="pv-btn" type="button" id="pvReset">Reset</button>
           <button class="pv-btn" type="button" id="pvPublish" hidden>Publish .glb</button>
-          <button class="pv-btn" type="button" id="pvDefault" hidden>Set default</button>
           <button class="pv-btn" type="button" id="pvDelete" hidden>Delete</button>
           <button class="pv-btn admin" type="button" id="pvAuth">Admin</button>
         </div>
@@ -2452,18 +2442,24 @@
 /* ===== PEEK VIEWER =========================================================
    A GLB stage inside the visitor scene.
 
-   Reading is public: the library is a manifest committed beside the models,
-   so a visitor needs nothing but the page. Writing is gated on a GitHub token
-   with push access to this repository — the same permission that lets someone
-   change the site at all — so there is no shared password sitting in this file
-   waiting to leak. The token stays in the tab and is never stored.
+   The stage holds exactly one published model. Publishing a new file replaces
+   the old one — the previous .glb is deleted from the repo in the same pass,
+   so the folder never accumulates dead weight and the manifest always names a
+   single file. With nothing published, the stage falls back to the model this
+   script generates in code, so it is never empty.
+
+   Reading is public: the manifest sits beside the models and a visitor needs
+   nothing but the page. Writing is gated on a GitHub token with push access to
+   this repository — the same permission that lets someone change the site at
+   all — so there is no shared password in this file waiting to leak. The token
+   stays in the tab and is never stored.
 ========================================================================== */
 (() => {
   const REPO = {
     owner : "doubleaxis3d",
     name  : "branding",        // repo serving this page; a user site would be "doubleaxis3d.github.io"
     branch: "main",
-    dir   : "assets/models"    // folder in the repo holding the .glb files
+    dir   : "assets/models"    // folder in the repo holding the .glb file
   };
   const MAX_UPLOAD = 25 * 1024 * 1024;      // the Contents API gets unhappy past this
   const MANIFEST = REPO.dir + "/manifest.json";
@@ -2477,7 +2473,8 @@
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   let token = null, user = null;
-  let models = [], activeId = null, defaultPath = null;
+  let published = null;      // the one model in the repo, or null
+  let demo = null;           // the generated fallback
   let sameOrigin = true;
 
   /* --- DOUBLE AXIS 001: the demo model, generated in code and written
@@ -2637,9 +2634,7 @@
   }
 
   /* ---------------------------- small helpers ---------------------------- */
-  const fmtSize = (b) => b == null ? "" : b < 1048576 ? Math.round(b / 1024) + " KB" : (b / 1048576).toFixed(2) + " MB";
   const safeName = (n) => n.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
-  const shortName = (n) => n.replace(/\.(glb|gltf)$/i, "").slice(0, 18);
   const status = (s) => { $("pvStatus").textContent = s; };
   const b64text = (s) => btoa(unescape(encodeURIComponent(s)));
   const fileToB64 = (file) => new Promise((res, rej) => {
@@ -2685,27 +2680,41 @@
     body: JSON.stringify({ message, sha, branch: REPO.branch })
   });
 
-  async function writeManifest(){
-    const items = models.filter(m => m.kind === "repo")
-                        .map(({ name, path, sha, size }) => ({ name, path, sha, size }));
-    const current = await meta(MANIFEST);
-    const body = JSON.stringify({ version:1, default: defaultPath || null, items }, null, 2);
-    await putFile(MANIFEST, b64text(body), "viewer: update model manifest", current ? current.sha : undefined);
-  }
-
+  /* The manifest names the single live model. Version 1 wrote an items array;
+     it is still read so an older deploy keeps working, taking the first entry. */
   async function readManifest(){
     const bust = "?t=" + Date.now();
+    let data = null;
     try {
       const r = await fetch(MANIFEST + bust, { cache:"no-store" });
-      if (r.ok){ sameOrigin = true; return await r.json(); }
+      if (r.ok){ sameOrigin = true; data = await r.json(); }
     } catch (e) {}
-    try {
-      const r = await fetch(RAW(MANIFEST) + bust, { cache:"no-store" });
-      if (r.ok){ sameOrigin = false; return await r.json(); }
-    } catch (e) {}
+    if (!data){
+      try {
+        const r = await fetch(RAW(MANIFEST) + bust, { cache:"no-store" });
+        if (r.ok){ sameOrigin = false; data = await r.json(); }
+      } catch (e) {}
+    }
+    if (!data) return null;
+    if (data.model) return data.model;
+    if (Array.isArray(data.items) && data.items.length) return data.items[0];
     return null;
   }
-  const srcFor = (path) => sameOrigin ? path : RAW(path);
+
+  async function writeManifest(){
+    const current = await meta(MANIFEST);
+    const body = JSON.stringify({
+      version: 2,
+      model: published ? {
+        name: published.name,
+        path: published.path,
+        sha: published.sha,
+        size: published.size,
+        addedAt: published.addedAt
+      } : null
+    }, null, 2);
+    await putFile(MANIFEST, b64text(body), "viewer: update model manifest", current ? current.sha : undefined);
+  }
 
   function problem(e){
     if (e.status === 401) return "Token rejected — check or renew it";
@@ -2717,45 +2726,23 @@
   }
 
   /* ------------------------------ rendering ------------------------------ */
-  function renderChips(){
-    const wrap = $("pvChips");
-    wrap.innerHTML = "";
-    models.forEach((m) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "pv-chip"
-        + (m.id === activeId ? " is-active" : "")
-        + (m.path && m.path === defaultPath ? " is-default" : "");
-      b.textContent = shortName(m.name);
-      b.title = m.name + (m.size ? " · " + fmtSize(m.size) : "");
-      b.addEventListener("click", () => show(m.id));
-      wrap.appendChild(b);
-    });
-  }
-
   function renderAdmin(){
     const on = !!token;
-    const m = models.find(x => x.id === activeId);
-    const isRepo = !!(m && m.kind === "repo");
     $("pvAuth").textContent = on ? "Sign out" : "Admin";
     $("pvPublish").hidden = !on;
-    $("pvDefault").hidden = !on;
     $("pvDelete").hidden = !on;
-    $("pvDefault").disabled = !isRepo || (m && m.path === defaultPath);
-    $("pvDelete").disabled = !isRepo;
-    $("pvPublish").textContent = on ? "Publish .glb" : "Publish";
+    $("pvPublish").textContent = published ? "Replace .glb" : "Publish .glb";
+    $("pvDelete").disabled = !published;
   }
 
-  async function show(id){
-    const m = models.find(x => x.id === id);
-    if (!m) return;
-    activeId = id;
+  function show(model){
+    if (!model) return;
     status("Loading");
-    mv.src = m.src;
-    $("pvName").textContent = m.name;
-    renderChips();
+    mv.src = model.src;
+    $("pvName").textContent = model.name;
     renderAdmin();
   }
+  const showCurrent = () => show(published || makeDemo());
 
   /* ------------------------------- viewer -------------------------------- */
   mv.addEventListener("progress", (e) => {
@@ -2763,14 +2750,25 @@
     if (p < 1) status("Loading " + Math.round(p * 100) + "%");
   });
 
+  /* An animated model runs on arrival — a still object on a stage reads as a
+     screenshot. The button starts in its playing state to match, and a model
+     with no clips leaves it disabled. */
   mv.addEventListener("load", () => {
     status("Live");
     const clips = mv.availableAnimations || [];
-    $("pvPlay").disabled = clips.length === 0;
-    $("pvPlay").textContent = "Play";
-    $("pvPlay").classList.remove("is-on");
-    mv.pause();
-    stopFrames();
+    const play = $("pvPlay");
+    play.disabled = clips.length === 0;
+    if (clips.length && !reduce){
+      mv.play();
+      play.textContent = "Pause";
+      play.classList.add("is-on");
+      startFrames();
+    } else {
+      mv.pause();
+      play.textContent = "Play";
+      play.classList.remove("is-on");
+      stopFrames();
+    }
     readOrbit();
   });
 
@@ -2806,14 +2804,10 @@
   stage.addEventListener("pointerleave", () => stage.classList.remove("is-tracking"));
 
   /* ------------------------------ controls ------------------------------- */
-  $("pvSpin").addEventListener("click", (e) => {
-    const on = mv.hasAttribute("auto-rotate");
-    if (on) mv.removeAttribute("auto-rotate"); else mv.setAttribute("auto-rotate", "");
-    e.currentTarget.classList.toggle("is-on", !on);
-  });
   /* the hero's frame counter, borrowed for the clip that is running */
   let frameTimer = null;
   const startFrames = () => {
+    if (frameTimer) return;
     let n = 0;
     frameTimer = setInterval(() => {
       n = (n + 1) % 1000;
@@ -2825,6 +2819,12 @@
     frameTimer = null;
     $("pvFrame").textContent = "\u2014";
   };
+
+  $("pvSpin").addEventListener("click", (e) => {
+    const on = mv.hasAttribute("auto-rotate");
+    if (on) mv.removeAttribute("auto-rotate"); else mv.setAttribute("auto-rotate", "");
+    e.currentTarget.classList.toggle("is-on", !on);
+  });
 
   $("pvPlay").addEventListener("click", (e) => {
     if (mv.paused){
@@ -2839,6 +2839,7 @@
       stopFrames();
     }
   });
+
   $("pvReset").addEventListener("click", () => {
     mv.cameraOrbit = "0deg 76deg auto";
     mv.fieldOfView = "auto";
@@ -2874,59 +2875,58 @@
     if (!/\.(glb|gltf)$/i.test(file.name)){ status("Only .glb or .gltf"); return; }
     if (file.size > MAX_UPLOAD){ status("Over 25 MB — too large to publish"); return; }
 
+    const previous = published;
+    if (previous && !confirm(previous.name + " is on the stage now and will be deleted. Replace it with " + file.name + "?")) return;
+
     const name = safeName(file.name) || ("model-" + Date.now() + ".glb");
     const path = REPO.dir + "/" + name;
 
-    // show it immediately from the local file while the commit is in flight
-    const rec = { id:path, name, size:file.size, path, kind:"repo", src:URL.createObjectURL(file) };
-    const at = models.findIndex(m => m.id === path);
-    if (at >= 0) models.splice(at, 1, rec); else models.push(rec);
-    await show(path);
-
+    // show it straight from the local file while the commit is in flight
+    const next = {
+      name, path, size:file.size, addedAt:Date.now(),
+      src: URL.createObjectURL(file)
+    };
+    published = next;
+    show(next);
     status("Publishing");
+
     try {
       const existing = await meta(path);
       const res = await putFile(path, await fileToB64(file), "viewer: publish " + name, existing ? existing.sha : undefined);
-      rec.sha = res.content.sha;
-      if (!defaultPath) defaultPath = path;
+      next.sha = res.content.sha;
+
+      // one model on the stage means the old file goes with it
+      if (previous && previous.path !== path){
+        const old = await meta(previous.path);
+        if (old) await delFile(previous.path, old.sha, "viewer: replace " + previous.name);
+      }
       await writeManifest();
       status("Published");
-      renderChips(); renderAdmin();
     } catch (e){
-      models = models.filter(m => m.id !== path);
+      published = previous;
+      showCurrent();
       status(problem(e));
-      renderChips();
-      if (models.length) await show(models[0].id);
     }
+    renderAdmin();
   }
 
   $("pvDelete").addEventListener("click", async () => {
-    const m = models.find(x => x.id === activeId);
-    if (!token || !m || m.kind !== "repo") return;
-    if (!confirm("Delete " + m.name + " from the repository?")) return;
+    if (!token || !published) return;
+    const gone = published;
+    if (!confirm("Delete " + gone.name + " from the repository? The stage falls back to the generated model.")) return;
     status("Deleting");
     try {
-      const current = await meta(m.path);
-      if (current) await delFile(m.path, current.sha, "viewer: remove " + m.name);
-      models = models.filter(x => x.id !== m.id);
-      if (defaultPath === m.path){
-        const next = models.find(x => x.kind === "repo");
-        defaultPath = next ? next.path : null;
-      }
+      const current = await meta(gone.path);
+      if (current) await delFile(gone.path, current.sha, "viewer: remove " + gone.name);
+      published = null;
       await writeManifest();
-      await show(models[0].id);
+      showCurrent();
       status("Removed");
-    } catch (e){ status(problem(e)); }
-  });
-
-  $("pvDefault").addEventListener("click", async () => {
-    const m = models.find(x => x.id === activeId);
-    if (!token || !m || m.kind !== "repo") return;
-    const prev = defaultPath;
-    defaultPath = m.path;
-    renderChips(); renderAdmin();
-    try { await writeManifest(); status("Set as default"); }
-    catch (e){ defaultPath = prev; renderChips(); renderAdmin(); status(problem(e)); }
+    } catch (e){
+      published = gone;
+      status(problem(e));
+    }
+    renderAdmin();
   });
 
   /* ------------------------------ admin sheet ---------------------------- */
@@ -2959,7 +2959,6 @@
       close();
       renderAdmin();
       status("Signed in as " + user);
-      await loadLibrary();
     } catch (e){
       token = null; user = null;
       let msg = e.message || "Verification failed.";
@@ -2973,32 +2972,24 @@
   }
 
   /* -------------------------------- boot --------------------------------- */
-  let demo = null;
   function makeDemo(){
     if (demo) return demo;
     const bytes = buildDemoGLB();
     demo = {
-      id:"demo",
       name:"DOUBLE-AXIS-001.glb",
       size:bytes.byteLength,
-      kind:"demo",
       src:URL.createObjectURL(new Blob([bytes], { type:"model/gltf-binary" }))
     };
     return demo;
   }
 
-  async function loadLibrary(){
-    const manifest = await readManifest();
-    const items = (manifest && Array.isArray(manifest.items) ? manifest.items : []).map(it => ({
-      id: it.path, name: it.name, size: it.size, sha: it.sha, path: it.path,
-      kind: "repo", src: srcFor(it.path)
-    }));
-    defaultPath = (manifest && manifest.default) || (items[0] && items[0].path) || null;
-    models = [makeDemo(), ...items];
-    renderChips();
+  async function loadStage(){
+    const entry = await readManifest();
+    published = entry && entry.path
+      ? { name:entry.name || entry.path.split("/").pop(), path:entry.path, sha:entry.sha, size:entry.size, addedAt:entry.addedAt, src:(sameOrigin ? entry.path : RAW(entry.path)) }
+      : null;
     renderAdmin();
-    const first = models.find(m => m.path === defaultPath) || models[0];
-    await show(first.id);
+    showCurrent();
   }
 
   if (reduce){
@@ -3009,7 +3000,7 @@
   }
 
   customElements.whenDefined("model-viewer")
-    .then(loadLibrary)
+    .then(loadStage)
     .catch(() => status("Renderer unavailable"));
 
   setTimeout(() => {
