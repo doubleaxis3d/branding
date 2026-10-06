@@ -1,12 +1,10 @@
 {
-  "version": 1,
-  "default": "assets/models/Squirrel_Run_Rabbit.glb",
-  "items": [
-    {
-      "name": "Squirrel_Run_Rabbit.glb",
-      "path": "assets/models/Squirrel_Run_Rabbit.glb",
-      "sha": "7fd8e778dc9735419f55da1de8b1a0e04d8474d8",
-      "size": 7704024
-    }
-  ]
+  "version": 2,
+  "model": {
+    "name": "Untitled.glb",
+    "path": "assets/models/Untitled.glb",
+    "sha": "102d1e92abf783d3c9456e095c51c7ff4f516126",
+    "size": 322956,
+    "addedAt": 1791266972789
+  }
 }
