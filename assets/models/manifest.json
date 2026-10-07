@@ -1,10 +1,4 @@
 {
   "version": 2,
-  "model": {
-    "name": "Rabbit.glb",
-    "path": "assets/models/Rabbit.glb",
-    "sha": "1a70d4ef5d77b3eeb62f0059fa8cc4b15448e269",
-    "size": 321992,
-    "addedAt": 1791348694255
-  }
+  "model": null
 }
