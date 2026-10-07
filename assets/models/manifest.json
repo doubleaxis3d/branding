@@ -1,10 +1,10 @@
 {
   "version": 2,
   "model": {
-    "name": "Rabbit_centered.glb",
-    "path": "assets/models/Rabbit_centered.glb",
-    "sha": "344c9e4e8c0fcb1a27e60a5c160cdcc4ee95d54a",
-    "size": 322108,
-    "addedAt": 1791348213484
+    "name": "Rabbit.glb",
+    "path": "assets/models/Rabbit.glb",
+    "sha": "f0072b924ea75192ddf19d1f984da593d58fca1e",
+    "size": 316128,
+    "addedAt": 1791348571460
   }
 }
