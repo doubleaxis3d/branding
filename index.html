@@ -3179,6 +3179,51 @@
   document.documentElement.addEventListener("mouseleave", () => { pointer.on = false; wake(); });
   window.addEventListener("blur", () => { pointer.on = false; wake(); });
 
+  /* GROUNDING — model-viewer measures the model once, in whatever pose the
+     clip is in at load, and lays the shadow floor at the bottom of that box.
+     A runner caught mid-stride at frame 0 has its feet in the air, so for the
+     rest of the loop it sinks through the floor. Fix: play the whole clip
+     through once, off-screen and in one go (nothing is drawn in between), note
+     the lowest point the mesh ever reaches, and rebuild the shadow there. */
+  function groundToClip(){
+    const action = scene && scene.currentAnimationAction;
+    if (!action || !scene.mixer) return;
+    const clip = action.getClip();
+    if (!clip || !(clip.duration > 0)) return;
+
+    const meshes = [];
+    scene.target.traverse((o) => { if (o.isMesh && o.visible && o.geometry && o.geometry.attributes.position) meshes.push(o); });
+    if (!meshes.length) return;
+
+    const box = scene.boundingBox.clone();
+    const toLocal = scene.target.matrixWorld.clone().invert();   // the box lives in model space
+    const v = box.min.clone();
+    const resume = action.time;
+    const STEPS = 48;
+
+    for (let i = 0; i <= STEPS; i++){
+      scene.mixer.setTime(clip.duration * i / STEPS);
+      scene.target.updateMatrixWorld(true);
+      for (const m of meshes){
+        if (m.isSkinnedMesh) m.skeleton.update();
+        const pos = m.geometry.attributes.position;
+        const step = pos.count > 20000 ? 4 : pos.count > 6000 ? 2 : 1;
+        for (let k = 0; k < pos.count; k += step){
+          m.getVertexPosition(k, v);
+          box.expandByPoint(v.applyMatrix4(m.matrixWorld).applyMatrix4(toLocal));
+        }
+      }
+    }
+    scene.mixer.setTime(resume);                                  // back where the clip was
+
+    if (box.min.y < scene.boundingBox.min.y - 1e-4){
+      scene.boundingBox.copy(box);
+      box.getSize(scene.size);
+      scene.updateShadow();
+      scene.queueRender();
+    }
+  }
+
   /* hook once into the scene, refind the bones on every model load */
   mv.addEventListener("load", () => {
     const s = sceneOf(mv);
@@ -3192,6 +3237,10 @@
     }
     findRig();
     wake();
+    // the clip is started by the viewer's own load handler; give it a frame
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      try { groundToClip(); } catch (e) {}
+    }));
   });
 })();
 </script>
