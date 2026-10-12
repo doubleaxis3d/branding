@@ -1390,7 +1390,7 @@
     <!-- 3D STAGE — the model the visitors have come to look at -->
     <div class="peek-viewer" id="peekViewer">
       <model-viewer id="pvStage"
-                    camera-controls disable-zoom touch-action="pan-y" interaction-prompt="none"
+                    camera-orbit="-35deg 62deg auto" interaction-prompt="none"
                     shadow-intensity="0.85" exposure="1.15" environment-image="neutral"
                     min-field-of-view="10deg" max-field-of-view="50deg"
                     alt="Interactive 3D model on the studio stage"></model-viewer>
@@ -1409,9 +1409,7 @@
           <b id="pvName">&mdash;</b>
         </div>
         <div class="pv-btns">
-          <button class="pv-btn is-on" type="button" id="pvSpin">Auto-rotate</button>
           <button class="pv-btn" type="button" id="pvPlay" disabled>Play</button>
-          <button class="pv-btn" type="button" id="pvReset">Reset</button>
           <button class="pv-btn" type="button" id="pvPublish" hidden>Publish .glb</button>
           <button class="pv-btn" type="button" id="pvDelete" hidden>Delete</button>
           <button class="pv-btn admin" type="button" id="pvAuth">Admin</button>
@@ -1806,7 +1804,7 @@
         if (interactive.classList.contains("s3")) color = "#d7ff3a";
         if (interactive.classList.contains("s4")) color = "#d7ff3a";
       } else if (interactive?.classList.contains("peek-viewer")) {
-        text = "Orbit";
+        text = "Look";
         color = "#d7ff3a";
       } else if (interactive?.classList.contains("peek-section")) {
         text = "Hello";
@@ -2820,11 +2818,6 @@
     $("pvFrame").textContent = "\u2014";
   };
 
-  $("pvSpin").addEventListener("click", (e) => {
-    const on = mv.hasAttribute("auto-rotate");
-    if (on) mv.removeAttribute("auto-rotate"); else mv.setAttribute("auto-rotate", "");
-    e.currentTarget.classList.toggle("is-on", !on);
-  });
 
   $("pvPlay").addEventListener("click", (e) => {
     if (mv.paused){
@@ -2840,12 +2833,6 @@
     }
   });
 
-  $("pvReset").addEventListener("click", () => {
-    mv.cameraOrbit = "0deg 76deg auto";
-    mv.fieldOfView = "auto";
-    mv.cameraTarget = "auto auto auto";
-    readOrbit();
-  });
 
   /* ------------------------------- publish ------------------------------- */
   $("pvPublish").addEventListener("click", () => $("pvFile").click());
@@ -2992,12 +2979,9 @@
     showCurrent();
   }
 
-  if (reduce){
-    mv.removeAttribute("auto-rotate");
-    $("pvSpin").classList.remove("is-on");
-  } else {
-    mv.setAttribute("auto-rotate", "");
-  }
+  /* the camera is fixed on a front three-quarter view (camera-orbit on the
+     element) — no auto-rotate, no orbit dragging; the model's own motion and
+     the look-at carry the stage */
 
   customElements.whenDefined("model-viewer")
     .then(loadStage)
@@ -3031,7 +3015,9 @@
   if (!mv) return;
 
   const MAX_TURN  = 65 * Math.PI / 180;  // furthest the head may turn from the clip's own pose
-  const NECK_SHARE = 0.4;                // the neck carries this much, the head the rest
+  const MAX_DOWN  = 14 * Math.PI / 180;  // how far below the clip's head angle it may look
+  const MAX_UP    = 32 * Math.PI / 180;  // how far above it may look
+  const NECK_SHARE = 0.4;               // the neck carries this much, the head the rest
   const NEAR = 0.82;                     // the gaze point sits this far along the camera→head line
   const FOLLOW = 7;                      // how quickly the gaze chases the pointer (per second)
   const FADE = 3.5;                      // how quickly it eases in / back to the clip
@@ -3135,6 +3121,21 @@
 
       const face = head.getWorldQuaternion(T.q1).clone();
       const fwd = axis.clone().applyQuaternion(face);
+
+      // pitch gets its own, tighter range than the overall turn: measured as
+      // elevation above the horizon, the gaze may drop only MAX_DOWN below
+      // the clip's own head angle (further and the chin folds into the chest)
+      // and rise MAX_UP above it; side-to-side is left to MAX_TURN
+      const elev = (d) => Math.asin(Math.max(-1, Math.min(1, d.y)));
+      const base = elev(fwd);
+      const pitch = Math.max(base - MAX_DOWN, Math.min(base + MAX_UP, elev(want)));
+      const flat = Math.hypot(want.x, want.z) > 1e-4 ? want.clone() : fwd.clone();
+      flat.y = 0;
+      if (flat.lengthSq() > 1e-8){
+        flat.normalize().multiplyScalar(Math.cos(pitch));
+        want.set(flat.x, Math.sin(pitch), flat.z).normalize();
+      }
+
       const turn = q3.setFromUnitVectors(fwd, want);
       const angle = 2 * Math.acos(Math.min(1, Math.abs(turn.w)));
       const k = (angle > MAX_TURN ? MAX_TURN / angle : 1) * weight;
