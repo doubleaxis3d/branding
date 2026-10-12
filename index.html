@@ -3225,6 +3225,205 @@
     }
   }
 
+  /* GROUND — the clip runs on the spot, so the ground runs instead: pebbles,
+     stones and grass tufts slide under the model at exactly the speed its
+     planted foot pushes back, which is what sells the run.
+
+     The speed is measured, not guessed: the clip is sampled once, and while a
+     foot bone is down on the floor its backward drift is the ground's speed
+     and direction. A clip whose feet do not drift (an idle, a wave, a model
+     with no feet) gets no ground at all.
+
+     Props advance on the animation's own clock, so pausing the clip stops the
+     ground too. They live on render layer 1, which the main camera sees and
+     model-viewer's shadow camera does not — the floor shadow stays the
+     rabbit's alone. three.js classes are borrowed from the loaded model,
+     so no second copy of three is fetched. */
+  const G = {
+    LAYER: 1,
+    COUNT: 60,       // props in play at any time
+    LEN: 2.0,        // the patch reaches this many model-heights ahead and behind
+    WIDE: 1.5,       // and this many to each side
+    LANE: 0.3,       // kept clear around the runner's own path
+    EDGE: 0.3        // outer share of the oval over which props grow / shrink
+  };
+  let ground = null;
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function measureStride(){
+    const action = scene.currentAnimationAction;
+    if (!action || !scene.mixer) return null;
+    const clip = action.getClip();
+    if (!clip || !(clip.duration > 0)) return null;
+    const feet = [];
+    scene.target.traverse((o) => { if (o.isBone && /foot|toe|ankle/i.test(o.name)) feet.push(o); });
+    if (!feet.length) return null;
+
+    const toLocal = scene.target.matrixWorld.clone().invert();
+    const STEPS = 96, dt = clip.duration / STEPS, resume = action.time;
+    const P = feet[0].position.constructor, frames = [];
+    for (let i = 0; i <= STEPS; i++){
+      scene.mixer.setTime(i * dt);
+      scene.target.updateMatrixWorld(true);
+      frames.push(feet.map((f) => new P().setFromMatrixPosition(f.matrixWorld).applyMatrix4(toLocal)));
+    }
+    scene.mixer.setTime(resume);
+
+    const H = scene.size.y;
+    let low = Infinity;
+    frames.forEach((fr) => fr.forEach((p) => { if (p.y < low) low = p.y; }));
+    const tol = H * 0.035;
+    let sx = 0, sz = 0, n = 0;
+    for (let i = 0; i < STEPS; i++){
+      for (let j = 0; j < feet.length; j++){
+        const a = frames[i][j], b = frames[i + 1][j];
+        if (a.y < low + tol && b.y < low + tol){ sx += (b.x - a.x) / dt; sz += (b.z - a.z) / dt; n++; }
+      }
+    }
+    if (n < 3) return null;
+    const v = { x:sx / n, z:sz / n }, speed = Math.hypot(v.x, v.z);
+    return speed > H * 0.15 ? { x:v.x / speed, z:v.z / speed, speed } : null;
+  }
+
+  function dropGround(){
+    if (!ground) return;
+    ground.group.parent && ground.group.parent.remove(ground.group);
+    ground.geos.forEach((g) => g.dispose());
+    ground.mats.forEach((m) => m.dispose());
+    ground = null;
+  }
+
+  function buildGround(){
+    dropGround();
+    if (!scene || reduceMotion) return;
+    const stride = measureStride();
+    if (!stride) return;
+
+    // three.js classes, borrowed from the loaded model
+    let src = null;
+    scene.target.traverse((o) => { if (!src && o.isMesh && o.geometry) src = o; });
+    if (!src) return;
+    const Mesh = src.isSkinnedMesh ? Object.getPrototypeOf(src.constructor) : src.constructor;
+    const Obj3D = Object.getPrototypeOf(Mesh);
+    const Geo = src.geometry.constructor;
+    const attr = Object.values(src.geometry.attributes).find((a) => !a.isInterleavedBufferAttribute);
+    const srcMat = Array.isArray(src.material) ? src.material[0] : src.material;
+    if (!attr || !srcMat) return;
+    const Attr = attr.constructor, Mat = srcMat.constructor;
+
+    const H = scene.size.y;
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const geos = [], mats = [];
+    const geo = (pos) => {
+      const g = new Geo();
+      g.setAttribute("position", new Attr(new Float32Array(pos), 3));
+      g.computeVertexNormals();
+      geos.push(g);
+      return g;
+    };
+    const mat = (color, extra) => {
+      const m = new Mat(Object.assign({ color, roughness:1, metalness:0, flatShading:true }, extra || {}));
+      mats.push(m);
+      return m;
+    };
+
+    // a stone: an icosahedron, knocked about and squashed, sunk a little
+    const t = (1 + Math.sqrt(5)) / 2;
+    const IV = [[-1,t,0],[1,t,0],[-1,-t,0],[1,-t,0],[0,-1,t],[0,1,t],[0,-1,-t],[0,1,-t],[t,0,-1],[t,0,1],[-t,0,-1],[-t,0,1]];
+    const IF = [[0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],[1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],
+                [3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],[4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]];
+    const stone = (flat) => {
+      const vs = IV.map(([x, y, z]) => {
+        const k = rnd(0.78, 1.12) / Math.hypot(x, y, z);
+        return [x * k * rnd(1, 1.35), y * k * flat, z * k];
+      });
+      const pos = [];
+      IF.forEach((f) => f.forEach((i) => pos.push(vs[i][0], vs[i][1] + flat * 0.55, vs[i][2])));
+      return geo(pos);
+    };
+    // a tuft: a few tapering, outward-bent blades
+    const tuft = (blades) => {
+      const pos = [];
+      for (let b = 0; b < blades; b++){
+        const a = (b / blades) * Math.PI * 2 + rnd(-0.4, 0.4);
+        const ca = Math.cos(a), sa = Math.sin(a);
+        const h = rnd(0.65, 1), w = rnd(0.07, 0.11), lean = rnd(0.25, 0.55);
+        const r0 = rnd(0, 0.12);
+        // blade cross-direction is perpendicular to its lean
+        const P2 = (u, s, y) => {
+          const out = r0 + lean * Math.pow(y, 1.6);
+          return [ca * out - sa * u * s, y * h, sa * out + ca * u * s];
+        };
+        const L0 = P2(-1, w, 0), R0 = P2(1, w, 0), L1 = P2(-1, w * 0.55, 0.5), R1 = P2(1, w * 0.55, 0.5), T = P2(0, 0, 1);
+        pos.push(...L0, ...R0, ...R1,  ...L0, ...R1, ...L1,  ...L1, ...R1, ...T);
+      }
+      return geo(pos);
+    };
+
+    const kinds = [
+      { geos:[stone(0.6), stone(0.55), stone(0.7)], mats:[mat(0x585e6c), mat(0x4a4f5c)], size:[0.04, 0.075], weight:3 },
+      { geos:[stone(0.5), stone(0.65)],              mats:[mat(0x6e7482), mat(0x5f6573)], size:[0.014, 0.028], weight:5 },
+      { geos:[tuft(5), tuft(6), tuft(4)],            mats:[mat(0x7d9c33, { side:2 }), mat(0x66882d, { side:2 })], size:[0.08, 0.14], weight:6 }
+    ];
+    const bag = [];
+    kinds.forEach((k) => { for (let i = 0; i < k.weight; i++) bag.push(k); });
+
+    const group = new Obj3D();
+    group.position.y = scene.boundingBox.min.y;
+    const dir = { x:stride.x, z:stride.z };            // the way the ground moves
+    const side = { x:-dir.z, z:dir.x };
+    const L = G.LEN * H, W = G.WIDE * H, lane = G.LANE * H;
+
+    const items = [];
+    const dress = (it) => {
+      const k = bag[(Math.random() * bag.length) | 0];
+      it.mesh.geometry = k.geos[(Math.random() * k.geos.length) | 0];
+      it.mesh.material = k.mats[(Math.random() * k.mats.length) | 0];
+      it.size = rnd(k.size[0], k.size[1]) * H;
+      it.mesh.rotation.y = rnd(0, Math.PI * 2);
+      const s = Math.random() < 0.5 ? -1 : 1;
+      it.w = s * rnd(lane, W);
+    };
+    for (let i = 0; i < G.COUNT; i++){
+      const mesh = new Mesh(kinds[0].geos[0], kinds[0].mats[0]);
+      mesh.layers.set(G.LAYER);
+      mesh.matrixAutoUpdate = true;
+      const it = { mesh, u: -L + (2 * L) * (i + Math.random()) / G.COUNT };
+      dress(it);
+      group.add(mesh);
+      items.push(it);
+    }
+    scene.target.add(group);
+    const cam = scene.camera || (scene.getCamera && scene.getCamera());
+    if (cam) cam.layers.enable(G.LAYER);
+
+    ground = { group, items, geos, mats, dir, side, L, W, speed:stride.speed, clock:scene.mixer.time, dress };
+    placeGround(0);
+  }
+
+  function placeGround(du){
+    const { items, dir, side, L, W, dress } = ground;
+    for (const it of items){
+      it.u += du;
+      if (it.u > L){ it.u -= 2 * L; dress(it); }
+      // an oval patch around the runner: props grow in at its rim and shrink out
+      const r = Math.hypot(it.u / L, it.w / W);
+      const e = Math.max(0, Math.min(1, (1 - r) / G.EDGE));
+      const s = it.size * (e <= 0 ? 0.0001 : e * e * (3 - 2 * e));
+      it.mesh.scale.setScalar(s);
+      it.mesh.position.set(dir.x * it.u + side.x * it.w, 0, dir.z * it.u + side.z * it.w);
+    }
+  }
+
+  function tickGround(){
+    if (!ground || !scene.mixer) return;
+    const now = scene.mixer.time;
+    let dt = now - ground.clock;
+    ground.clock = now;
+    if (!(dt > 0) || dt > 0.25) return;      // paused, second pass of a frame, or a jump
+    placeGround(dt * ground.speed);
+  }
+
   /* hook once into the scene, refind the bones on every model load */
   mv.addEventListener("load", () => {
     const s = sceneOf(mv);
@@ -3234,13 +3433,16 @@
       scene.onBeforeRender = function(renderer, sc, camera, rt){
         if (prev) prev.call(this, renderer, sc, camera, rt);
         apply(renderer, sc, camera);
+        tickGround();
       };
     }
     findRig();
     wake();
     // the clip is started by the viewer's own load handler; give it a frame
     requestAnimationFrame(() => requestAnimationFrame(() => {
+      dropGround();                     // last model's props must not count as its mesh
       try { groundToClip(); } catch (e) {}
+      try { buildGround(); } catch (e) { dropGround(); }
     }));
   });
 })();
