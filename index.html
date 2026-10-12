@@ -3008,5 +3008,192 @@
   }, 9000);
 })();
 </script>
+
+<script>
+/* ===== PEEK VIEWER · LOOK-AT ==============================================
+   The model on the stage keeps running its clip, but its neck and head turn
+   toward the pointer — layered on top of the animation every frame, so the
+   legs and body never lose a beat.
+
+   How: model-viewer advances the clip's mixer before it draws, and three.js
+   calls scene.onBeforeRender right after the scene's matrices are updated and
+   before any skinned mesh reads its bones. That is the one moment where an
+   extra rotation on the neck and head survives into the frame. The shadow pass
+   draws the same scene first, so the hook is idempotent: it always starts from
+   the clip's pose, never from last frame's turned one (that matters while the
+   clip is paused and the mixer is not rewriting the bones).
+
+   Any rigged model with a bone named *head* (and optionally *neck*) gets the
+   behaviour; models without one — the generated demo — are left alone.
+========================================================================== */
+(() => {
+  const mv = document.getElementById("pvStage");
+  if (!mv) return;
+
+  const MAX_TURN  = 65 * Math.PI / 180;  // furthest the head may turn from the clip's own pose
+  const NECK_SHARE = 0.4;                // the neck carries this much, the head the rest
+  const NEAR = 0.82;                     // the gaze point sits this far along the camera→head line
+  const FOLLOW = 7;                      // how quickly the gaze chases the pointer (per second)
+  const FADE = 3.5;                      // how quickly it eases in / back to the clip
+
+  let scene = null;          // model-viewer's ModelScene (a THREE.Scene)
+  let rig = null;            // { head, neck, axis, bones:[{bone, base, written}] }
+  let T = null;              // three.js constructors, borrowed from the scene itself
+
+  const pointer = { x:0, y:0, on:false };   // stage-relative NDC
+  const aim = { x:0, y:0 };                 // eased pointer
+  let weight = 0;                           // eased 0..1 blend toward the pointer
+  let raf = null, last = 0;
+
+  /* model-viewer keeps its scene behind a private symbol — reach it once */
+  const sceneOf = (el) => {
+    const s = Object.getOwnPropertySymbols(el).find((k) => k.description === "scene");
+    return s ? el[s] : null;
+  };
+
+  function findRig(){
+    rig = null;
+    if (!scene) return;
+    let head = null, neck = null;
+    scene.traverse((o) => {
+      if (!o.isBone) return;
+      const n = o.name.toLowerCase();
+      if (!head && /head/.test(n) && !/end|top|nub/.test(n)) head = o;
+      if (!neck && /neck/.test(n)) neck = o;
+    });
+    if (!head) return;
+    // only use the neck if it really sits above this head in the chain
+    let p = head.parent, ok = false;
+    while (p){ if (p === neck){ ok = true; break; } p = p.parent; }
+    if (!ok) neck = null;
+
+    const V = head.position.constructor, Q = head.quaternion.constructor;
+    T = { V, Q, v1:new V(), v2:new V(), v3:new V(), q1:new Q(), q2:new Q(), q3:new Q(), qI:new Q() };
+
+    rig = {
+      head, neck,
+      axis: forwardAxis(head, V),
+      bones: [neck, head].filter(Boolean).map((bone) => ({ bone, base:new Q(), written:new Q(), has:false }))
+    };
+  }
+
+  /* Which of the head bone's local axes is "the way the face points"?
+     Rigs disagree, so measure it: the eyes/face sit in front of the head
+     joint, so the average of the head's child joints (minus the one that
+     continues up the skull) points forward. Fallback: the axis closest to the
+     model's own +Z, glTF's front. */
+  function forwardAxis(head, V){
+    head.updateWorldMatrix(true, true);
+    const axes = [new V(1,0,0), new V(-1,0,0), new V(0,1,0), new V(0,-1,0), new V(0,0,1), new V(0,0,-1)];
+    const hq = head.getWorldQuaternion(new head.quaternion.constructor());
+    const front = new V(0, 0, 1);
+    const root = scene.target || scene;
+    if (root.getWorldQuaternion) front.applyQuaternion(root.getWorldQuaternion(new head.quaternion.constructor()));
+    let best = axes[4], score = -Infinity;
+    for (const a of axes){
+      const s = a.clone().applyQuaternion(hq).dot(front);
+      if (s > score){ score = s; best = a; }
+    }
+    return best;
+  }
+
+  /* rotate a bone by a world-space quaternion, about its own pivot */
+  function turnWorld(bone, r){
+    const { q1, q2 } = T;
+    bone.getWorldQuaternion(q1);                       // bone in world
+    q1.premultiply(r);                                 // turned, in world
+    bone.parent.getWorldQuaternion(q2).invert();       // back into parent space
+    bone.quaternion.copy(q2.multiply(q1));
+    bone.updateMatrixWorld(true);
+  }
+
+  function apply(renderer, sc, camera){
+    if (!rig) return;
+    const { head, neck, axis, bones } = rig;
+
+    // start from the clip's pose: if nothing rewrote the bone since our last
+    // write (clip paused, or this is the second pass of the same frame),
+    // put the clip's value back
+    for (const b of bones){
+      if (b.has && b.bone.quaternion.equals(b.written)) b.bone.quaternion.copy(b.base);
+      else b.base.copy(b.bone.quaternion);
+    }
+    const top = neck || head;
+    top.parent.updateWorldMatrix(true, false);
+    top.updateMatrixWorld(true);
+
+    if (weight > 0.001 && camera){
+      const { v1, v2, v3, q3, qI } = T;
+      // the pointer as a point in space: on the ray under the cursor,
+      // a little in front of the rabbit's head
+      const headPos = head.getWorldPosition(v1);
+      const camPos = v2.setFromMatrixPosition(camera.matrixWorld);
+      const dist = headPos.distanceTo(camPos);
+      const ray = v3.set(aim.x, aim.y, 0.5).unproject(camera).sub(camPos).normalize();
+      const target = ray.multiplyScalar(dist * NEAR).add(camPos);          // v3
+      const want = target.sub(headPos).normalize();                        // v3
+
+      const face = head.getWorldQuaternion(T.q1).clone();
+      const fwd = axis.clone().applyQuaternion(face);
+      const turn = q3.setFromUnitVectors(fwd, want);
+      const angle = 2 * Math.acos(Math.min(1, Math.abs(turn.w)));
+      const k = (angle > MAX_TURN ? MAX_TURN / angle : 1) * weight;
+      const total = qI.identity().slerp(turn, k).clone();
+
+      if (neck) turnWorld(neck, T.qI.identity().slerp(total, NECK_SHARE).clone());
+      turnWorld(head, T.qI.identity().slerp(total, neck ? 1 - NECK_SHARE : 1).clone());
+    }
+
+    for (const b of bones){ b.written.copy(b.bone.quaternion); b.has = true; }
+  }
+
+  /* easing runs on its own clock so it also moves while the clip is paused */
+  function tick(now){
+    raf = null;
+    const dt = Math.min(0.1, (now - (last || now)) / 1000);
+    last = now;
+    const a = 1 - Math.exp(-FOLLOW * dt), f = 1 - Math.exp(-FADE * dt);
+    aim.x += (pointer.x - aim.x) * a;
+    aim.y += (pointer.y - aim.y) * a;
+    weight += ((pointer.on ? 1 : 0) - weight) * f;
+
+    const settled = Math.abs(pointer.x - aim.x) < 1e-3 && Math.abs(pointer.y - aim.y) < 1e-3 &&
+                    Math.abs((pointer.on ? 1 : 0) - weight) < 1e-3;
+    if (scene) scene.queueRender();          // repaint even when the clip is paused
+    if (!settled) raf = requestAnimationFrame(tick);
+    else last = 0;
+  }
+  const wake = () => { if (!raf) raf = requestAnimationFrame(tick); };
+
+  /* the whole page drives the gaze — the rabbit notices the pointer even
+     before it reaches the stage; NDC is measured against the stage */
+  window.addEventListener("pointermove", (e) => {
+    const r = mv.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const clamp = (v) => Math.max(-3, Math.min(3, v));
+    pointer.x = clamp(((e.clientX - r.left) / r.width) * 2 - 1);
+    pointer.y = clamp(-(((e.clientY - r.top) / r.height) * 2 - 1));
+    pointer.on = true;
+    wake();
+  }, { passive:true });
+  document.documentElement.addEventListener("mouseleave", () => { pointer.on = false; wake(); });
+  window.addEventListener("blur", () => { pointer.on = false; wake(); });
+
+  /* hook once into the scene, refind the bones on every model load */
+  mv.addEventListener("load", () => {
+    const s = sceneOf(mv);
+    if (s && s !== scene){
+      scene = s;
+      const prev = scene.onBeforeRender;
+      scene.onBeforeRender = function(renderer, sc, camera, rt){
+        if (prev) prev.call(this, renderer, sc, camera, rt);
+        apply(renderer, sc, camera);
+      };
+    }
+    findRig();
+    wake();
+  });
+})();
+</script>
 </body>
 </html>
