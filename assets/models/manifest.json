@@ -1,4 +1,10 @@
 {
   "version": 2,
-  "model": null
+  "model": {
+    "name": "Rabbit_viewer_fixed.glb",
+    "path": "assets/models/Rabbit_viewer_fixed.glb",
+    "sha": "a12e45eb3b036929cb781267e8e4fb4fbc04affa",
+    "size": 322548,
+    "addedAt": 1791788678452
+  }
 }
