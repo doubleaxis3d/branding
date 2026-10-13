@@ -158,6 +158,9 @@
   body.carrot-on .cursor-ring,
   body.carrot-on .cursor-aura{ opacity:0 !important; }
   body.cursor-hidden .cursor-carrot{ opacity:0 !important; }
+  /* touch screens have no hover cursor: the carrot appears where the stage
+     is tapped or dragged, and fades a moment after the finger lifts */
+  body.carrot-touch .cursor-carrot{ opacity:1; }
   body.cursor-down .cursor-carrot svg{ transform:scale(.88); transform-origin:7px 57px; }
 
   @media (pointer:fine) and (hover:hover){
@@ -530,6 +533,7 @@
     position:absolute;
     left:0; right:0; top:0; bottom:120px;
     z-index:0;
+    touch-action:pan-y;          /* sideways drags move the carrot, up/down still scrolls */
   }
   .peek-viewer model-viewer{
     width:100%; height:100%; display:block;
@@ -3268,7 +3272,7 @@
 
   /* the whole page drives the gaze — the rabbit notices the pointer even
      before it reaches the stage; NDC is measured against the stage */
-  window.addEventListener("pointermove", (e) => {
+  const aimAt = (e) => {
     const r = mv.getBoundingClientRect();
     if (!r.width || !r.height) return;
     const clamp = (v) => Math.max(-3, Math.min(3, v));
@@ -3276,7 +3280,11 @@
     pointer.y = clamp(-(((e.clientY - r.top) / r.height) * 2 - 1));
     pointer.on = true;
     wake();
-  }, { passive:true });
+  };
+  window.addEventListener("pointermove", aimAt, { passive:true });
+  // a tap on a touch screen has no hover before it: aim on the press itself
+  window.addEventListener("pointerdown", (e) => { if (e.pointerType !== "mouse") aimAt(e); }, { passive:true });
+  window.addEventListener("carrot-gone", () => { pointer.on = false; wake(); });
   document.documentElement.addEventListener("mouseleave", () => { pointer.on = false; eagerGoal = 0; wake(); });
   /* the carrot is out (custom cursor over the stage): the rabbit hurries */
   const stageEl = mv.closest(".peek-viewer") || mv;
@@ -3650,6 +3658,58 @@
 </script>
 
 <script>
+/* ===== PEEK VIEWER · TOUCH CARROT ==========================================
+   The kinetic cursor only exists for a mouse. On a phone or tablet the
+   carrot is held out where the finger touches the stage instead; the look-at
+   script already turns the rabbit toward that same point. */
+(() => {
+  const stage = document.getElementById("peekViewer");
+  const carrot = document.querySelector(".cursor-carrot");
+  if (!stage || !carrot) return;
+  let hideTimer = null, held = false;
+
+  const place = (e) => {
+    carrot.style.transform = `translate3d(${e.clientX}px,${e.clientY}px,0)`;
+  };
+  const show = (e) => {
+    clearTimeout(hideTimer);
+    place(e);
+    document.body.classList.add("carrot-touch");
+  };
+  const hideSoon = () => {
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      document.body.classList.remove("carrot-touch");
+      // let the rabbit's gaze ease back to its run once the carrot is gone
+      window.dispatchEvent(new Event("carrot-gone"));
+    }, 1600);
+  };
+
+  stage.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse" || e.target.closest("button")) return;
+    held = true; show(e);
+  });
+  window.addEventListener("pointermove", (e) => {
+    if (held && e.pointerType !== "mouse") place(e);
+  }, { passive:true });
+  const release = (e) => {
+    if (!held || e.pointerType === "mouse") return;
+    held = false; hideSoon();
+  };
+  window.addEventListener("pointerup", release);
+  window.addEventListener("pointercancel", release);
+  // the carrot is fixed to the screen: if the page scrolls away, drop it
+  window.addEventListener("scroll", () => {
+    if (!held && document.body.classList.contains("carrot-touch")){
+      clearTimeout(hideTimer);
+      document.body.classList.remove("carrot-touch");
+      window.dispatchEvent(new Event("carrot-gone"));
+    }
+  }, { passive:true });
+})();
+</script>
+
+<script>
 /* ===== PEEK VIEWER · PIXEL MODE ==========================================
    Turns the 3D stage into a dot game. Right after three.js finishes a frame
    (scene.onAfterRender — the WebGL buffer is still intact at that moment),
@@ -3665,7 +3725,10 @@
   const btn = document.getElementById("pvPixel");
   if (!mv || !stage || !out || !btn) return;
 
-  const PIX = 3;        // one game pixel = this many CSS pixels
+  // one game pixel = this many CSS pixels: chunky on a desktop screen,
+  // finer on a phone where the stage itself is small
+  const PIX_DESKTOP = 5, PIX_MOBILE = 3;
+  const mobileMQ = window.matchMedia("(hover:none), (pointer:coarse), (max-width:760px)");
   const LEVELS = 7;     // brightness steps
   const BAYER = [0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5].map((v) => (v + 0.5) / 16 - 0.5);
 
@@ -3688,6 +3751,7 @@
     const gl = renderer.domElement;
     renderer.getCurrentViewport(vp);
     const r = stage.getBoundingClientRect();
+    const PIX = mobileMQ.matches ? PIX_MOBILE : PIX_DESKTOP;
     const w = Math.max(1, Math.round(r.width / PIX)), h = Math.max(1, Math.round(r.height / PIX));
     if (out.width !== w || out.height !== h){ out.width = w; out.height = h; }
     ctx.clearRect(0, 0, w, h);
