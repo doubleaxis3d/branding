@@ -1,10 +1,10 @@
 {
   "version": 2,
   "model": {
-    "name": "Rabbit_viewer_fixed.glb",
-    "path": "assets/models/Rabbit_viewer_fixed.glb",
-    "sha": "f04f82bd3c2c8ae45a1e52856328359789dd9629",
-    "size": 5388284,
-    "addedAt": 1791805121618
+    "name": "Rabbit_viewer_fixed-2-.glb",
+    "path": "assets/models/Rabbit_viewer_fixed-2-.glb",
+    "sha": "d1b9d889ea43dec6e831a0729fbd3a223c32dca5",
+    "size": 5386172,
+    "addedAt": 1791875587422
   }
 }
