@@ -134,6 +134,32 @@
   body.cursor-hidden .cursor-ring,
   body.cursor-hidden .cursor-aura{opacity:0;}
 
+  /* over the 3D stage the cursor becomes a carrot for the rabbit to chase;
+     the tip is the hotspot, the body swings with the pointer's motion */
+  .cursor-carrot{
+    position:fixed; left:0; top:0;
+    width:64px; height:64px;
+    margin:-57px 0 0 -7px;            /* puts the tip (6,48 of 54) on the pointer */
+    z-index:9999;
+    pointer-events:none;
+    opacity:0;
+    transform-origin:7px 57px;
+    transition:opacity .16s ease;
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));
+  }
+  .cursor-carrot svg{ display:block; width:100%; height:100%; overflow:visible; }
+  .cursor-carrot .px,
+  body.pixel-on .cursor-carrot .smooth{ display:none; }
+  body.pixel-on .cursor-carrot .px{ display:block; }
+  .cursor-carrot .leaves{ transform-origin:37px 15px; animation:carrot-leaves 1.6s ease-in-out infinite; }
+  @keyframes carrot-leaves{ 0%,100%{ transform:rotate(-5deg); } 50%{ transform:rotate(6deg); } }
+  body.cursor-active.carrot-on .cursor-carrot{ opacity:1; }
+  body.carrot-on .cursor-core,
+  body.carrot-on .cursor-ring,
+  body.carrot-on .cursor-aura{ opacity:0 !important; }
+  body.cursor-hidden .cursor-carrot{ opacity:0 !important; }
+  body.cursor-down .cursor-carrot svg{ transform:scale(.88); transform-origin:7px 57px; }
+
   @media (pointer:fine) and (hover:hover){
     body.cursor-ready,
     body.cursor-ready a,
@@ -513,6 +539,21 @@
     --progress-mask:transparent;
   }
   .peek-section .peek-label{ z-index:3; }
+
+  /* PIXEL MODE — the 3D stage redrawn as a dot game: every frame is copied
+     down to a low-res canvas, cut to a few colour steps with ordered dither,
+     and blown back up with hard pixel edges. The live model-viewer stays
+     underneath (invisible) so it still takes the pointer. */
+  .pv-pixel{
+    position:absolute; inset:0; z-index:1;
+    width:100%; height:100%;
+    pointer-events:none;
+    image-rendering:pixelated;
+    image-rendering:crisp-edges;
+    display:none;
+  }
+  .peek-viewer.is-pixel .pv-pixel{ display:block; }
+  .peek-viewer.is-pixel model-viewer{ opacity:0; }
   .pv-btn:focus-visible{ outline:2px solid var(--lime); outline-offset:2px; }
 
   /* the pointer readout the hero uses, carried into the stage */
@@ -1303,6 +1344,19 @@
 <div class="cursor-aura" aria-hidden="true"></div>
 <div class="cursor-ring" aria-hidden="true"><span class="cursor-label"></span></div>
 <div class="cursor-core" aria-hidden="true"></div>
+<div class="cursor-carrot" aria-hidden="true">
+  <svg class="px" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="11" y="1" width="1" height="1" fill="#4f9a2e"/><rect x="14" y="1" width="1" height="1" fill="#86cc48"/><rect x="10" y="2" width="1" height="1" fill="#4f9a2e"/><rect x="11" y="2" width="1" height="1" fill="#86cc48"/><rect x="13" y="2" width="1" height="1" fill="#86cc48"/><rect x="14" y="2" width="1" height="1" fill="#86cc48"/><rect x="11" y="3" width="1" height="1" fill="#4f9a2e"/><rect x="12" y="3" width="1" height="1" fill="#86cc48"/><rect x="13" y="3" width="1" height="1" fill="#86cc48"/><rect x="9" y="4" width="1" height="1" fill="#ff8a1f"/><rect x="10" y="4" width="1" height="1" fill="#ff8a1f"/><rect x="11" y="4" width="1" height="1" fill="#4f9a2e"/><rect x="12" y="4" width="1" height="1" fill="#86cc48"/><rect x="13" y="4" width="1" height="1" fill="#4f9a2e"/><rect x="8" y="5" width="1" height="1" fill="#ff8a1f"/><rect x="9" y="5" width="1" height="1" fill="#ffb867"/><rect x="10" y="5" width="1" height="1" fill="#ff8a1f"/><rect x="11" y="5" width="1" height="1" fill="#ff8a1f"/><rect x="12" y="5" width="1" height="1" fill="#c9590c"/><rect x="7" y="6" width="1" height="1" fill="#ff8a1f"/><rect x="8" y="6" width="1" height="1" fill="#ffb867"/><rect x="9" y="6" width="1" height="1" fill="#ff8a1f"/><rect x="10" y="6" width="1" height="1" fill="#ff8a1f"/><rect x="11" y="6" width="1" height="1" fill="#c9590c"/><rect x="12" y="6" width="1" height="1" fill="#c9590c"/><rect x="6" y="7" width="1" height="1" fill="#ff8a1f"/><rect x="7" y="7" width="1" height="1" fill="#ffb867"/><rect x="8" y="7" width="1" height="1" fill="#ff8a1f"/><rect x="9" y="7" width="1" height="1" fill="#ff8a1f"/><rect x="10" y="7" width="1" height="1" fill="#ff8a1f"/><rect x="11" y="7" width="1" height="1" fill="#c9590c"/><rect x="12" y="7" width="1" height="1" fill="#c9590c"/><rect x="5" y="8" width="1" height="1" fill="#ff8a1f"/><rect x="6" y="8" width="1" height="1" fill="#ffb867"/><rect x="7" y="8" width="1" height="1" fill="#ff8a1f"/><rect x="8" y="8" width="1" height="1" fill="#ff8a1f"/><rect x="9" y="8" width="1" height="1" fill="#ff8a1f"/><rect x="10" y="8" width="1" height="1" fill="#c9590c"/><rect x="11" y="8" width="1" height="1" fill="#c9590c"/><rect x="4" y="9" width="1" height="1" fill="#ff8a1f"/><rect x="5" y="9" width="1" height="1" fill="#ffb867"/><rect x="6" y="9" width="1" height="1" fill="#ff8a1f"/><rect x="7" y="9" width="1" height="1" fill="#c9590c"/><rect x="8" y="9" width="1" height="1" fill="#ff8a1f"/><rect x="9" y="9" width="1" height="1" fill="#ff8a1f"/><rect x="10" y="9" width="1" height="1" fill="#c9590c"/><rect x="3" y="10" width="1" height="1" fill="#ff8a1f"/><rect x="4" y="10" width="1" height="1" fill="#ffb867"/><rect x="5" y="10" width="1" height="1" fill="#ff8a1f"/><rect x="6" y="10" width="1" height="1" fill="#ff8a1f"/><rect x="7" y="10" width="1" height="1" fill="#ff8a1f"/><rect x="8" y="10" width="1" height="1" fill="#c9590c"/><rect x="9" y="10" width="1" height="1" fill="#c9590c"/><rect x="3" y="11" width="1" height="1" fill="#ffb867"/><rect x="4" y="11" width="1" height="1" fill="#ff8a1f"/><rect x="5" y="11" width="1" height="1" fill="#ff8a1f"/><rect x="6" y="11" width="1" height="1" fill="#ff8a1f"/><rect x="7" y="11" width="1" height="1" fill="#c9590c"/><rect x="8" y="11" width="1" height="1" fill="#c9590c"/><rect x="2" y="12" width="1" height="1" fill="#ffb867"/><rect x="3" y="12" width="1" height="1" fill="#ff8a1f"/><rect x="4" y="12" width="1" height="1" fill="#ff8a1f"/><rect x="5" y="12" width="1" height="1" fill="#c9590c"/><rect x="6" y="12" width="1" height="1" fill="#c9590c"/><rect x="2" y="13" width="1" height="1" fill="#ff8a1f"/><rect x="3" y="13" width="1" height="1" fill="#c9590c"/><rect x="4" y="13" width="1" height="1" fill="#c9590c"/><rect x="1" y="14" width="1" height="1" fill="#ff8a1f"/><rect x="2" y="14" width="1" height="1" fill="#c9590c"/></svg>
+  <svg class="smooth" viewBox="0 0 54 54">
+    <g class="leaves">
+      <path d="M36 16 C33 9 33 4 35 0 C38 4 39 10 38 15 Z" fill="#5fae34"/>
+      <path d="M37 16 C40 9 45 6 51 6 C48 10 44 14 39 18 Z" fill="#78c443"/>
+      <path d="M36 16 C38 11 42 8 46 7 C44 11 41 14 38 17 Z" fill="#d7ff3a" opacity=".55"/>
+    </g>
+    <path d="M6 48 L27 16 C30 12 35 11 39 14 C43 17 43 22 40 25 Z" fill="#ff8a1f"/>
+    <path d="M6 48 L27 16 C29 13.5 32 12.5 35 13 L12 43 Z" fill="#ffad5c" opacity=".7"/>
+    <path d="M22 26 l5 3 M17 33 l4 2.5 M27 20 l4 3 M13 40 l3 1.5" stroke="#c4560a" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+  </svg>
+</div>
 
 <header>
   <div class="logo">Double Axis</div>
@@ -1395,6 +1449,8 @@
                     min-field-of-view="10deg" max-field-of-view="50deg"
                     alt="Interactive 3D model on the studio stage"></model-viewer>
 
+      <canvas class="pv-pixel" id="pvPixelOut" aria-hidden="true"></canvas>
+
       <div class="pv-cross" aria-hidden="true"><i class="v" id="pvCrossV"></i><i class="h" id="pvCrossH"></i></div>
 
       <div class="pv-read" aria-hidden="true">
@@ -1409,6 +1465,7 @@
           <b id="pvName">&mdash;</b>
         </div>
         <div class="pv-btns">
+          <button class="pv-btn is-on" type="button" id="pvPixel">Pixel</button>
           <button class="pv-btn" type="button" id="pvPlay" disabled>Play</button>
           <button class="pv-btn" type="button" id="pvPublish" hidden>Publish .glb</button>
           <button class="pv-btn" type="button" id="pvDelete" hidden>Delete</button>
@@ -1782,7 +1839,9 @@
     const ring = document.querySelector(".cursor-ring");
     const aura = document.querySelector(".cursor-aura");
     const label = document.querySelector(".cursor-label");
+    const carrot = document.querySelector(".cursor-carrot");
     if (!core || !ring || !aura || !label) return;
+    let tilt = 0;
 
     document.body.classList.add("cursor-ready");
 
@@ -1817,6 +1876,7 @@
         color = "#d7ff3a";
       }
 
+      document.body.classList.toggle("carrot-on", Boolean(carrot && interactive?.classList.contains("peek-viewer")));
       document.body.classList.toggle("cursor-over", Boolean(interactive));
       document.body.style.setProperty("--cursor-accent", color);
       label.textContent = text;
@@ -1873,6 +1933,13 @@
       label.style.transform = `rotate(${-angle}rad)`;
       aura.style.transform = `translate3d(${auraPos.x}px,${auraPos.y}px,0)`;
 
+      /* the carrot dangles: it leans against the direction of travel and
+         eases back upright when the pointer rests */
+      const tiltGoal = Math.max(-30, Math.min(30, -dx * 1.4));
+      tilt += (tiltGoal - tilt) * .16;
+      if (carrot) carrot.style.transform =
+        `translate3d(${mouse.x}px,${mouse.y}px,0) rotate(${tilt.toFixed(2)}deg)`;
+
       lastMouse = { ...mouse };
 
       /* stand down once the trailing elements have caught up; any
@@ -1880,7 +1947,7 @@
       const settled =
         Math.abs(mouse.x - ringPos.x) < .05 && Math.abs(mouse.y - ringPos.y) < .05 &&
         Math.abs(mouse.x - auraPos.x) < .05 && Math.abs(mouse.y - auraPos.y) < .05 &&
-        speed < .05;
+        speed < .05 && Math.abs(tilt) < .05;
 
       if (settled) cursorRunning = false;
       else requestAnimationFrame(renderCursor);
@@ -3029,6 +3096,8 @@
   const pointer = { x:0, y:0, on:false };   // stage-relative NDC
   const aim = { x:0, y:0 };                 // eased pointer
   let weight = 0;                           // eased 0..1 blend toward the pointer
+  const EAGER = 0;                          // extra run speed while the carrot is on the stage (0 = keep the clip's own pace; 0.35 = 1.35x)
+  let eager = 0, eagerGoal = 0;
   let raf = null, last = 0;
 
   /* model-viewer keeps its scene behind a private symbol — reach it once */
@@ -3157,9 +3226,12 @@
     aim.x += (pointer.x - aim.x) * a;
     aim.y += (pointer.y - aim.y) * a;
     weight += ((pointer.on ? 1 : 0) - weight) * f;
+    eager += (eagerGoal - eager) * (1 - Math.exp(-2.2 * dt));
+    if (Math.abs(eagerGoal - eager) < 1e-3) eager = eagerGoal;
+    mv.timeScale = 1 + EAGER * eager;        // the ground follows the clip's clock, so it keeps pace
 
     const settled = Math.abs(pointer.x - aim.x) < 1e-3 && Math.abs(pointer.y - aim.y) < 1e-3 &&
-                    Math.abs((pointer.on ? 1 : 0) - weight) < 1e-3;
+                    Math.abs((pointer.on ? 1 : 0) - weight) < 1e-3 && eager === eagerGoal;
     if (scene) scene.queueRender();          // repaint even when the clip is paused
     if (!settled) raf = requestAnimationFrame(tick);
     else last = 0;
@@ -3177,7 +3249,11 @@
     pointer.on = true;
     wake();
   }, { passive:true });
-  document.documentElement.addEventListener("mouseleave", () => { pointer.on = false; wake(); });
+  document.documentElement.addEventListener("mouseleave", () => { pointer.on = false; eagerGoal = 0; wake(); });
+  /* the carrot is out (custom cursor over the stage): the rabbit hurries */
+  const stageEl = mv.closest(".peek-viewer") || mv;
+  stageEl.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse"){ eagerGoal = 1; wake(); } });
+  stageEl.addEventListener("pointerleave", () => { eagerGoal = 0; wake(); });
   window.addEventListener("blur", () => { pointer.on = false; wake(); });
 
   /* GROUNDING — model-viewer measures the model once, in whatever pose the
@@ -3445,6 +3521,93 @@
       try { buildGround(); } catch (e) { dropGround(); }
     }));
   });
+})();
+</script>
+
+<script>
+/* ===== PEEK VIEWER · PIXEL MODE ==========================================
+   Turns the 3D stage into a dot game. Right after three.js finishes a frame
+   (scene.onAfterRender — the WebGL buffer is still intact at that moment),
+   the frame is shrunk onto a small 2D canvas, each pixel snapped to a few
+   colour steps through a 4x4 Bayer dither, and the canvas is shown stretched
+   with image-rendering:pixelated. Alpha is dithered too, so the soft floor
+   shadow turns into a stippled one, the way old games drew them.
+========================================================================== */
+(() => {
+  const mv = document.getElementById("pvStage");
+  const stage = document.getElementById("peekViewer");
+  const out = document.getElementById("pvPixelOut");
+  const btn = document.getElementById("pvPixel");
+  if (!mv || !stage || !out || !btn) return;
+
+  const PIX = 5;        // one game pixel = this many CSS pixels
+  const LEVELS = 7;     // brightness steps
+  const BAYER = [0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5].map((v) => (v + 0.5) / 16 - 0.5);
+
+  const ctx = out.getContext("2d", { willReadFrequently:true });
+  let on = true, scene = null;
+  const vp = { x:0, y:0, z:0, w:0, copy(v){ this.x = v.x; this.y = v.y; this.z = v.z; this.w = v.w; return this; } };
+
+  const setOn = (v) => {
+    on = v;
+    stage.classList.toggle("is-pixel", on);
+    document.body.classList.toggle("pixel-on", on);      // the carrot cursor goes 8-bit too
+    btn.classList.toggle("is-on", on);
+    btn.setAttribute("aria-pressed", String(on));
+    if (scene) scene.queueRender();          // repaint now, even if the clip is paused
+  };
+  btn.addEventListener("click", () => setOn(!on));
+
+  function grab(renderer){
+    if (!on || renderer.getRenderTarget() !== null) return;   // skip the shadow pass
+    const gl = renderer.domElement;
+    renderer.getCurrentViewport(vp);
+    const r = stage.getBoundingClientRect();
+    const w = Math.max(1, Math.round(r.width / PIX)), h = Math.max(1, Math.round(r.height / PIX));
+    if (out.width !== w || out.height !== h){ out.width = w; out.height = h; }
+    ctx.clearRect(0, 0, w, h);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(gl, vp.x, gl.height - vp.y - vp.w, vp.z, vp.w, 0, 0, w, h);
+
+    const img = ctx.getImageData(0, 0, w, h), d = img.data;
+    const step = 255 / (LEVELS - 1);
+    for (let y = 0; y < h; y++){
+      for (let x = 0; x < w; x++){
+        const i = (y * w + x) * 4, t = BAYER[((y & 3) << 2) | (x & 3)];
+        let a = d[i + 3];
+        if (a < 10){ d[i + 3] = 0; continue; }
+        a = Math.round(a / 85 + t) * 85;                     // 4 alpha steps
+        d[i + 3] = a < 0 ? 0 : a > 255 ? 255 : a;
+        // brightness is what gets dithered; hue is only snapped, never
+        // dithered, so the fur stays one clean colour instead of speckling
+        const r0 = d[i], g0 = d[i + 1], b0 = d[i + 2];
+        const L = 0.299 * r0 + 0.587 * g0 + 0.114 * b0;
+        if (L < 1){ d[i] = d[i + 1] = d[i + 2] = 0; continue; }
+        let Lq = Math.round(L / step + t * 0.9) * step;
+        Lq = Lq < 0 ? 0 : Lq > 255 ? 255 : Lq;
+        const k = Lq / L;
+        for (let c = 0; c < 3; c++){
+          const q = Math.round((d[i + c] * k) / 20) * 20;
+          d[i + c] = q < 0 ? 0 : q > 255 ? 255 : q;
+        }
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  mv.addEventListener("load", () => {
+    const k = Object.getOwnPropertySymbols(mv).find((s) => s.description === "scene");
+    const s = k ? mv[k] : null;
+    if (!s || s === scene) return;
+    scene = s;
+    const prev = scene.onAfterRender;
+    scene.onAfterRender = function(renderer, sc, camera){
+      if (prev) prev.call(this, renderer, sc, camera);
+      try { grab(renderer); } catch (e) { setOn(false); }    // never leave the stage blank
+    };
+  });
+
+  setOn(true);
 })();
 </script>
 </body>
