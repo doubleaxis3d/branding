@@ -554,6 +554,26 @@
   }
   .peek-viewer.is-pixel .pv-pixel{ display:block; }
   .peek-viewer.is-pixel model-viewer{ opacity:0; }
+
+  /* keycap hint for steering; fades for good once a key has been used */
+  .pv-keys{
+    position:absolute; left:50%; bottom:22px; z-index:3;
+    transform:translateX(-50%);
+    display:flex; align-items:center; gap:4px;
+    font-size:9px; letter-spacing:.14em; text-transform:uppercase;
+    color:color-mix(in srgb,var(--white) 62%,transparent);
+    pointer-events:none;
+    transition:opacity .6s ease;
+  }
+  .pv-keys b{
+    display:grid; place-items:center;
+    width:18px; height:18px;
+    border:1px solid color-mix(in srgb,var(--lime) 70%,transparent);
+    color:var(--lime); font-weight:600; letter-spacing:0;
+  }
+  .pv-keys span{ margin-left:8px; }
+  .pv-keys.is-used{ opacity:0; }
+  @media (hover:none), (pointer:coarse){ .pv-keys{ display:none; } }
   .pv-btn:focus-visible{ outline:2px solid var(--lime); outline-offset:2px; }
 
   /* the pointer readout the hero uses, carried into the stage */
@@ -1450,6 +1470,7 @@
                     alt="Interactive 3D model on the studio stage"></model-viewer>
 
       <canvas class="pv-pixel" id="pvPixelOut" aria-hidden="true"></canvas>
+      <div class="pv-keys" id="pvKeys" aria-hidden="true"><b>W</b><b>A</b><b>S</b><b>D</b><span>steer the rabbit</span></div>
 
       <div class="pv-cross" aria-hidden="true"><i class="v" id="pvCrossV"></i><i class="h" id="pvCrossH"></i></div>
 
@@ -3230,8 +3251,15 @@
     if (Math.abs(eagerGoal - eager) < 1e-3) eager = eagerGoal;
     mv.timeScale = 1 + EAGER * eager;        // the ground follows the clip's clock, so it keeps pace
 
+    // turn toward the steered heading along the shorter way round
+    let dh = headingGoal - heading;
+    dh = Math.atan2(Math.sin(dh), Math.cos(dh));
+    heading = Math.abs(dh) < 1e-3 ? headingGoal : heading + dh * (1 - Math.exp(-7 * dt));
+    applyHeading();
+
     const settled = Math.abs(pointer.x - aim.x) < 1e-3 && Math.abs(pointer.y - aim.y) < 1e-3 &&
-                    Math.abs((pointer.on ? 1 : 0) - weight) < 1e-3 && eager === eagerGoal;
+                    Math.abs((pointer.on ? 1 : 0) - weight) < 1e-3 && eager === eagerGoal &&
+                    heading === headingGoal;
     if (scene) scene.queueRender();          // repaint even when the clip is paused
     if (!settled) raf = requestAnimationFrame(tick);
     else last = 0;
@@ -3252,8 +3280,8 @@
   document.documentElement.addEventListener("mouseleave", () => { pointer.on = false; eagerGoal = 0; wake(); });
   /* the carrot is out (custom cursor over the stage): the rabbit hurries */
   const stageEl = mv.closest(".peek-viewer") || mv;
-  stageEl.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse"){ eagerGoal = 1; wake(); } });
-  stageEl.addEventListener("pointerleave", () => { eagerGoal = 0; wake(); });
+  stageEl.addEventListener("pointerenter", (e) => { overStage = true; if (e.pointerType === "mouse"){ eagerGoal = 1; wake(); } });
+  stageEl.addEventListener("pointerleave", () => { overStage = false; eagerGoal = 0; wake(); });
   window.addEventListener("blur", () => { pointer.on = false; wake(); });
 
   /* GROUNDING — model-viewer measures the model once, in whatever pose the
@@ -3277,6 +3305,7 @@
     const v = box.min.clone();
     const resume = action.time;
     const STEPS = 48;
+    let massX = 0, massZ = 0, massN = 0;     // the body's average spot over the clip: the turning pivot
 
     for (let i = 0; i <= STEPS; i++){
       scene.mixer.setTime(clip.duration * i / STEPS);
@@ -3288,12 +3317,19 @@
         for (let k = 0; k < pos.count; k += step){
           m.getVertexPosition(k, v);
           box.expandByPoint(v.applyMatrix4(m.matrixWorld).applyMatrix4(toLocal));
+          massX += v.x; massZ += v.z; massN++;
         }
       }
     }
     scene.mixer.setTime(resume);                                  // back where the clip was
+    if (massN) bodyCenter = { x: massX / massN, z: massZ / massN };
 
-    if (box.min.y < scene.boundingBox.min.y - 1e-4){
+    // the runner can be turned to any heading, so give the shadow a square
+    // footprint wide enough for every one of them
+    const cx = (box.min.x + box.max.x) / 2, cz = (box.min.z + box.max.z) / 2;
+    const half = Math.hypot(box.max.x - box.min.x, box.max.z - box.min.z) / 2;
+    box.min.x = cx - half; box.max.x = cx + half; box.min.z = cz - half; box.max.z = cz + half;
+    {
       scene.boundingBox.copy(box);
       box.getSize(scene.size);
       scene.updateShadow();
@@ -3446,26 +3482,45 @@
 
     const group = new Obj3D();
     group.position.y = scene.boundingBox.min.y;
-    const dir = { x:stride.x, z:stride.z };            // the way the ground moves
-    const side = { x:-dir.z, z:dir.x };
-    const L = G.LEN * H, W = G.WIDE * H, lane = G.LANE * H;
+    const RX = G.WIDE * H, RZ = G.LEN * H, lane = G.LANE * H;   // the oval patch, in stage axes
 
     const items = [];
-    const dress = (it) => {
+    const look = (it) => {
       const k = bag[(Math.random() * bag.length) | 0];
       it.mesh.geometry = k.geos[(Math.random() * k.geos.length) | 0];
       it.mesh.material = k.mats[(Math.random() * k.mats.length) | 0];
       it.size = rnd(k.size[0], k.size[1]) * H;
       it.mesh.rotation.y = rnd(0, Math.PI * 2);
-      const s = Math.random() < 0.5 ? -1 : 1;
-      it.w = s * rnd(lane, W);
     };
+    // re-enter a prop on the upstream rim of the oval, off the runner's lane
+    const respawn = (it, g) => {
+      const px = -g.z, pz = g.x;
+      const span = Math.hypot(px * RX, pz * RZ);
+      const ax = g.x / RX, az = g.z / RZ, A = ax * ax + az * az;
+      for (let tries = 0; tries < 12; tries++){
+        const w = (Math.random() < 0.5 ? -1 : 1) * rnd(Math.min(lane, span * 0.9), span * 0.98);
+        const bx = w * px / RX, bz = w * pz / RZ;
+        const B = 2 * (ax * bx + az * bz), C = bx * bx + bz * bz - 1, D = B * B - 4 * A * C;
+        if (D <= 0) continue;
+        const u = (-B - Math.sqrt(D)) / (2 * A);
+        it.x = w * px + u * g.x; it.z = w * pz + u * g.z;
+        look(it);
+        return;
+      }
+      it.x = -g.x * RX; it.z = -g.z * RZ; look(it);
+    };
+    const g0 = groundVel();
     for (let i = 0; i < G.COUNT; i++){
       const mesh = new Mesh(kinds[0].geos[0], kinds[0].mats[0]);
       mesh.layers.set(G.LAYER);
-      mesh.matrixAutoUpdate = true;
-      const it = { mesh, u: -L + (2 * L) * (i + Math.random()) / G.COUNT };
-      dress(it);
+      const it = { mesh, x:0, z:0 };
+      // scatter across the oval, keeping the lane in front of / behind the runner clear
+      for (let tries = 0; tries < 30; tries++){
+        const a = rnd(0, Math.PI * 2), r = Math.sqrt(Math.random());
+        it.x = Math.cos(a) * r * RX; it.z = Math.sin(a) * r * RZ;
+        if (Math.abs(it.x * g0.z - it.z * g0.x) > lane) break;
+      }
+      look(it);
       group.add(mesh);
       items.push(it);
     }
@@ -3473,21 +3528,29 @@
     const cam = scene.camera || (scene.getCamera && scene.getCamera());
     if (cam) cam.layers.enable(G.LAYER);
 
-    ground = { group, items, geos, mats, dir, side, L, W, speed:stride.speed, clock:scene.mixer.time, dress };
+    ground = { group, items, geos, mats, RX, RZ, stride, speed:stride.speed, clock:scene.mixer.time, respawn };
     placeGround(0);
   }
 
+  /* the ground slides opposite to where the runner faces: the clip's own
+     foot-drift direction, turned by the heading the keys have set */
+  function groundVel(){
+    const st = ground ? ground.stride : { x:0, z:-1 };
+    const c = Math.cos(heading), sn = Math.sin(heading);
+    return { x: st.x * c + st.z * sn, z: -st.x * sn + st.z * c };
+  }
+
   function placeGround(du){
-    const { items, dir, side, L, W, dress } = ground;
+    const { items, RX, RZ, respawn } = ground;
+    const g = groundVel();
     for (const it of items){
-      it.u += du;
-      if (it.u > L){ it.u -= 2 * L; dress(it); }
-      // an oval patch around the runner: props grow in at its rim and shrink out
-      const r = Math.hypot(it.u / L, it.w / W);
+      it.x += g.x * du; it.z += g.z * du;
+      let r = Math.hypot(it.x / RX, it.z / RZ);
+      if (r > 1 && it.x * g.x + it.z * g.z > 0){ respawn(it, g); r = Math.hypot(it.x / RX, it.z / RZ); }
+      // props grow in at the rim of the oval and shrink out again
       const e = Math.max(0, Math.min(1, (1 - r) / G.EDGE));
-      const s = it.size * (e <= 0 ? 0.0001 : e * e * (3 - 2 * e));
-      it.mesh.scale.setScalar(s);
-      it.mesh.position.set(dir.x * it.u + side.x * it.w, 0, dir.z * it.u + side.z * it.w);
+      it.mesh.scale.setScalar(it.size * (e <= 0 ? 0.0001 : e * e * (3 - 2 * e)));
+      it.mesh.position.set(it.x, 0, it.z);
     }
   }
 
@@ -3498,6 +3561,67 @@
     ground.clock = now;
     if (!(dt > 0) || dt > 0.25) return;      // paused, second pass of a frame, or a jump
     placeGround(dt * ground.speed);
+  }
+
+  /* STEERING — W A S D (or the arrow keys while the pointer is on the stage)
+     turn the runner toward that direction, measured from the fixed camera:
+     W is away from the viewer, S toward, A / D left and right. It is an
+     endless runner: the rabbit stays mid-stage and keeps its last heading,
+     and the ground scrolls the opposite way. Keys typed into form fields are
+     never taken. */
+  let heading = 0, headingGoal = 0, pivot = null, bodyCenter = null;
+  const held = new Set();
+  const KEYS = { KeyW:"f", ArrowUp:"f", KeyS:"b", ArrowDown:"b", KeyA:"l", ArrowLeft:"l", KeyD:"r", ArrowRight:"r" };
+  let stageSeen = false, overStage = false;
+  const hint = document.getElementById("pvKeys");
+
+  if ("IntersectionObserver" in window){
+    new IntersectionObserver((es) => { stageSeen = es[0].isIntersecting; }, { threshold:0.25 })
+      .observe(mv.closest(".peek-viewer") || mv);
+  } else stageSeen = true;
+
+  const typing = (t) => t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+  function steer(){
+    const f = (held.has("f") ? 1 : 0) - (held.has("b") ? 1 : 0);
+    const r = (held.has("r") ? 1 : 0) - (held.has("l") ? 1 : 0);
+    if (!f && !r) return;                                   // keep the last heading
+    let th = 0;
+    try { th = mv.getCameraOrbit().theta; } catch (e) {}
+    const dx = -Math.sin(th) * f + Math.cos(th) * r;
+    const dz = -Math.cos(th) * f - Math.sin(th) * r;
+    headingGoal = Math.atan2(dx, dz);                       // the model faces +Z at heading 0
+    if (hint) hint.classList.add("is-used");
+    wake();
+  }
+  window.addEventListener("keydown", (e) => {
+    const k = KEYS[e.code];
+    if (!k || e.metaKey || e.ctrlKey || e.altKey || typing(e.target) || !stageSeen || !ground) return;
+    const arrow = e.code.startsWith("Arrow");
+    if (arrow && !overStage) return;                        // arrows keep scrolling the page elsewhere
+    if (arrow) e.preventDefault();
+    held.add(k); steer();
+  });
+  window.addEventListener("keyup", (e) => { const k = KEYS[e.code]; if (k){ held.delete(k); steer(); } });
+  window.addEventListener("blur", () => held.clear());
+
+  /* turn the whole model about the middle of its footprint */
+  function applyHeading(){
+    const model = scene && (scene.model || scene._model);
+    if (!model || !pivot) return;
+    const c = Math.cos(heading), sn = Math.sin(heading);
+    const ox = pivot.p0x - pivot.cx, oz = pivot.p0z - pivot.cz;
+    model.rotation.y = heading;
+    model.position.x = ox * c + oz * sn + pivot.cx;
+    model.position.z = -ox * sn + oz * c + pivot.cz;
+  }
+  function resetHeading(){
+    heading = headingGoal = 0;
+    const model = scene && (scene.model || scene._model);
+    pivot = model ? {
+      p0x: model.position.x, p0z: model.position.z,
+      cx: bodyCenter ? bodyCenter.x : (scene.boundingBox.min.x + scene.boundingBox.max.x) / 2,
+      cz: bodyCenter ? bodyCenter.z : (scene.boundingBox.min.z + scene.boundingBox.max.z) / 2
+    } : null;
   }
 
   /* hook once into the scene, refind the bones on every model load */
@@ -3518,6 +3642,7 @@
     requestAnimationFrame(() => requestAnimationFrame(() => {
       dropGround();                     // last model's props must not count as its mesh
       try { groundToClip(); } catch (e) {}
+      resetHeading();
       try { buildGround(); } catch (e) { dropGround(); }
     }));
   });
